@@ -15,6 +15,52 @@
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout">
+    <item row="5" column="0">
+     <layout class="QHBoxLayout" name="horizontalLayout_3">
+      <item>
+       <widget class="QPushButton" name="findAxesButton">
+        <property name="text">
+         <string>Find axes</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </item>
+    <item row="3" column="0">
+     <layout class="QHBoxLayout" name="horizontalLayout_2">
+      <item>
+       <widget class="QLabel" name="label_3">
+        <property name="text">
+         <string>xn</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLineEdit" name="xnLineEdit">
+        <property name="enabled">
+         <bool>false</bool>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="label_4">
+        <property name="text">
+         <string>yn</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLineEdit" name="ynLineEdit">
+        <property name="enabled">
+         <bool>false</bool>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </item>
+    <item row="10" column="0">
+     <widget class="QTextBrowser" name="logs"/>
+    </item>
     <item row="0" column="0">
      <layout class="QHBoxLayout" name="horizontalLayout">
       <item>
@@ -47,51 +93,41 @@
       </item>
      </layout>
     </item>
-    <item row="2" column="0">
-     <layout class="QHBoxLayout" name="horizontalLayout_2">
+    <item row="1" column="0">
+     <layout class="QHBoxLayout" name="horizontalLayout_4" stretch="0,0">
       <item>
-       <widget class="QLabel" name="label_3">
+       <widget class="QLabel" name="x0Label">
         <property name="text">
-         <string>xn</string>
+         <string/>
         </property>
        </widget>
       </item>
       <item>
-       <widget class="QLineEdit" name="xnLineEdit">
-        <property name="enabled">
-         <bool>false</bool>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QLabel" name="label_4">
+       <widget class="QLabel" name="y0Label">
         <property name="text">
-         <string>yn</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QLineEdit" name="ynLineEdit">
-        <property name="enabled">
-         <bool>false</bool>
+         <string/>
         </property>
        </widget>
       </item>
      </layout>
     </item>
     <item row="4" column="0">
-     <layout class="QHBoxLayout" name="horizontalLayout_3">
+     <layout class="QHBoxLayout" name="horizontalLayout_5">
       <item>
-       <widget class="QPushButton" name="findAxesButton">
+       <widget class="QLabel" name="xnLabel">
         <property name="text">
-         <string>Find axes</string>
+         <string/>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="ynLabel">
+        <property name="text">
+         <string/>
         </property>
        </widget>
       </item>
      </layout>
-    </item>
-    <item row="9" column="0">
-     <widget class="QTextBrowser" name="logs"/>
     </item>
    </layout>
   </widget>
