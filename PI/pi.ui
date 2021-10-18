@@ -24,6 +24,16 @@
         </property>
        </widget>
       </item>
+      <item>
+       <widget class="QPushButton" name="startScanningButton">
+        <property name="enabled">
+         <bool>false</bool>
+        </property>
+        <property name="text">
+         <string>Start scanning</string>
+        </property>
+       </widget>
+      </item>
      </layout>
     </item>
     <item row="3" column="0">
@@ -143,6 +153,15 @@
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
  </widget>
+ <tabstops>
+  <tabstop>x0LineEdit</tabstop>
+  <tabstop>y0LineEdit</tabstop>
+  <tabstop>xnLineEdit</tabstop>
+  <tabstop>ynLineEdit</tabstop>
+  <tabstop>startScanningButton</tabstop>
+  <tabstop>findAxesButton</tabstop>
+  <tabstop>logs</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>

@@ -24,5 +24,6 @@ private:
     QTimer *timer = new QTimer(this);
     pi_controller *x_controller = nullptr;
     pi_controller *y_controller = nullptr;
+    int button_mask = 0;
 };
 #endif // PI_H

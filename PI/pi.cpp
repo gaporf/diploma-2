@@ -3,8 +3,7 @@
 #include "ui_pi.h"
 
 #include <iostream>
-
-#include <QThread>
+#include <thread>
 
 PI::PI(QWidget *parent)
     : QMainWindow(parent)
@@ -23,11 +22,20 @@ PI::PI(QWidget *parent)
             ui->x0Label->setStyleSheet("color: red");
             std::string info = "position should be valid double from " + std::to_string(x_controller->get_min_position()) + " to " + std::to_string(x_controller->get_max_position());
             ui->x0Label->setText(QString::fromStdString(info));
+
+            button_mask &= ~1;
+            ui->startScanningButton->setEnabled(false);
         }
         else
         {
             ui->x0LineEdit->setStyleSheet("color: green");
             ui->x0Label->setText("");
+
+            button_mask |= 1;
+            if (button_mask == 15)
+            {
+                ui->startScanningButton->setEnabled(true);
+            }
         }
     });
 
@@ -42,11 +50,20 @@ PI::PI(QWidget *parent)
             ui->y0Label->setStyleSheet("color: red");
             std::string info = "position should be valid double from " + std::to_string(y_controller->get_min_position()) + " to " + std::to_string(y_controller->get_max_position());
             ui->y0Label->setText(QString::fromStdString(info));
+
+            button_mask &= ~2;
+            ui->startScanningButton->setEnabled(false);
         }
         else
         {
             ui->y0LineEdit->setStyleSheet("color: green");
             ui->y0Label->setText("");
+
+            button_mask |= 2;
+            if (button_mask == 15)
+            {
+                ui->startScanningButton->setEnabled(true);
+            }
         }
     });
 
@@ -61,18 +78,27 @@ PI::PI(QWidget *parent)
             ui->xnLabel->setStyleSheet("color: red");
             std::string info = "position should be valid double from " + std::to_string(x_controller->get_min_position()) + " to " + std::to_string(x_controller->get_max_position());
             ui->xnLabel->setText(QString::fromStdString(info));
+
+            button_mask &= ~4;
+            ui->startScanningButton->setEnabled(false);
         }
         else
         {
-            ui->x0LineEdit->setStyleSheet("color: green");
+            ui->xnLineEdit->setStyleSheet("color: green");
             ui->xnLabel->setText("");
+
+            button_mask |= 4;
+            if (button_mask == 15)
+            {
+                ui->startScanningButton->setEnabled(true);
+            }
         }
     });
 
     connect(ui->ynLineEdit, &QLineEdit::textEdited, this, [this]
     {
         bool is_double;
-        QString yn_position_str = ui->y0LineEdit->text();
+        QString yn_position_str = ui->ynLineEdit->text();
         double yn_position = yn_position_str.toDouble(&is_double);
         if (!is_double || yn_position < y_controller->get_min_position() || yn_position > y_controller->get_max_position())
         {
@@ -80,13 +106,23 @@ PI::PI(QWidget *parent)
             ui->ynLabel->setStyleSheet("color: red");
             std::string info = "position should be valid double from " + std::to_string(y_controller->get_min_position()) + " to " + std::to_string(y_controller->get_max_position());
             ui->ynLabel->setText(QString::fromStdString(info));
+
+            button_mask &= ~8;
+            ui->startScanningButton->setEnabled(false);
         }
         else
         {
             ui->ynLineEdit->setStyleSheet("color: green");
             ui->ynLabel->setText("");
+
+            button_mask |= 8;
+            if (button_mask == 15)
+            {
+                ui->startScanningButton->setEnabled(true);
+            }
         }
     });
+
     connect(timer, &QTimer::timeout, this, [this]
     {
         if (x_controller != nullptr)
@@ -146,6 +182,19 @@ PI::PI(QWidget *parent)
         {
             ui->logs->append("<span style=\"color:red\">Can't find axes</span>");
         }
+    });
+
+    connect(ui->startScanningButton, &QPushButton::clicked, this, [this]
+    {
+        double x0 = ui->x0LineEdit->text().toDouble();
+        double xn = ui->xnLineEdit->text().toDouble();
+        double y0 = ui->y0LineEdit->text().toDouble();
+        double yn = ui->ynLineEdit->text().toDouble();
+        x_controller->set_velocity(20);
+        x_controller->move(x0);
+        y_controller->set_velocity(20);
+        y_controller->move(y0);
+
     });
 }
 
