@@ -35,6 +35,8 @@ struct pi_controller
     std::string get_axis_name();
 
     void set_axis_name(std::string new_axis);
+
+    double get_current_position();
 private:
     std::string axis;
     int port;

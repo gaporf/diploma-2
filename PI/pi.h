@@ -4,6 +4,10 @@
 #include <QTimer>
 #include <QMainWindow>
 
+#include <thread>
+#include <condition_variable>
+#include <mutex>
+
 #include "findaxes.h"
 #include "pi_controller.h"
 
@@ -25,5 +29,15 @@ private:
     pi_controller *x_controller = nullptr;
     pi_controller *y_controller = nullptr;
     int button_mask = 0;
+
+    std::mutex m;
+
+    std::thread move_to_start_position_thread;
+    std::condition_variable move_to_start_position_var;
+    bool move_to_start_position_clicked = false;
+
+    std::thread scanning_thread;
+    std::condition_variable scanning_var;
+    bool scanning_clicked = false;
 };
 #endif // PI_H

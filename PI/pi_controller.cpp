@@ -400,3 +400,21 @@ void pi_controller::set_axis_name(std::string new_axis)
 {
     axis = new_axis;
 }
+
+double pi_controller::get_current_position()
+{
+    double position;
+    const char *axes = "1";
+    typedef int (*FuncPI_qPos)(long ID, const char* szAxes, double* pdValueArray);
+    FuncPI_qPos PI_qPos = (FuncPI_qPos) lib.resolve("PI_qPOS");
+    if (PI_qPos == nullptr)
+    {
+        throw std::runtime_error("Couldn't find PI_qPOS in dll");
+    }
+    int res = PI_qPos(id, axes, &position);
+    if (res == 0)
+    {
+        throw std::runtime_error("qPos failed");
+    }
+    return position;
+}

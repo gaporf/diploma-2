@@ -43,6 +43,13 @@
        </property>
       </widget>
      </item>
+     <item>
+      <widget class="QPushButton" name="showX">
+       <property name="text">
+        <string>show x</string>
+       </property>
+      </widget>
+     </item>
     </layout>
    </item>
    <item>
@@ -61,10 +68,17 @@
        </property>
       </widget>
      </item>
+     <item>
+      <widget class="QPushButton" name="showY">
+       <property name="text">
+        <string>show y</string>
+       </property>
+      </widget>
+     </item>
     </layout>
    </item>
    <item>
-    <widget class="QPushButton" name="ChangeAxes">
+    <widget class="QPushButton" name="changeAxes">
      <property name="text">
       <string>change axes</string>
      </property>
