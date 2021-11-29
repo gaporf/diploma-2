@@ -20,12 +20,12 @@ PI::PI(QWidget *parent)
                 });
                 std::thread th1([this]
                 {
-                    (*x_controller).set_velocity(20);
+                    (*x_controller).set_velocity(15);
                     (*x_controller).move(ui->x0LineEdit->text().toDouble());
                 });
                 std::thread th2([this]
                 {
-                    (*y_controller).set_velocity(20);
+                    (*y_controller).set_velocity(15);
                     (*y_controller).move(ui->y0LineEdit->text().toDouble());
                 });
                 th1.join();
@@ -45,8 +45,113 @@ PI::PI(QWidget *parent)
                 {
                     return scanning_clicked;
                 });
-                lg.unlock();
+                is_cancelled.store(false);
+                double x0_size = ui->x0LineEdit->text().toDouble();
+                double y0_size = ui->y0LineEdit->text().toDouble();
+                double xN_size = ui->xnLineEdit->text().toDouble();
+                double yN_size = ui->ynLineEdit->text().toDouble();
+                double xs_size = ui->xsLineEdit->text().toDouble();
+                double ys_size = ui->ysLineEdit->text().toDouble();
+                double xo_size = ui->xoLineEdit->text().toDouble();
+                double yo_size = ui->yoLineEdit->text().toDouble();
+                if (xo_size >= xs_size)
+                {
+                    ui->xoLabel->setStyleSheet("color: red");
+                    std::string info = "Overlapped size should be less than frame size";
+                    ui->xoLabel->setText(QString::fromStdString(info));
+                }
+                else if (yo_size >= ys_size)
+                {
+                    ui->yoLabel->setStyleSheet("color: red");
+                    std::string info = "Overlapped size should be less than frame size";
+                    ui->yoLabel->setText(QString::fromStdString(info));
+                }
+                else if (std::abs(x0_size - xN_size) < xs_size)
+                {
+                    ui->xsLabel->setStyleSheet("color: red");
+                    std::string info = "Frame size should be not greater than scanning size";
+                    ui->xsLabel->setText(QString::fromStdString(info));
+                }
+                else if (std::abs(y0_size - yN_size) < ys_size)
+                {
+                    ui->ysLabel->setStyleSheet("color: red");
+                    std::string info = "Frame size should be not greater than scanning size";
+                    ui->ysLabel->setText(QString::fromStdString(info));
+                }
+                else
+                {
+                    std::thread th1([this, x0_size, xN_size, xs_size]
+                    {
+                        (*x_controller).set_velocity(15);
+                        (*x_controller).move(x0_size + (x0_size < xN_size ? 1 : -1) * xs_size / 2);
+                    });
+                    std::thread th2([this, y0_size, yN_size, ys_size]
+                    {
+                        (*y_controller).set_velocity(15);
+                        (*y_controller).move(y0_size + (y0_size < yN_size ? 1 : -1) * ys_size / 2);
+                    });
+                    th1.join();
+                    th2.join();
+                    double cur_x = (*x_controller).get_current_position();
+                    double cur_y = (*y_controller).get_current_position();
+                    char direction = (x0_size < xN_size ? 'F' : 'B');
+                    ui->cancelScanningButton->setEnabled(true);
+                    while ((y0_size < yN_size && cur_y <= yN_size) || (y0_size > yN_size && cur_y >= yN_size))
+                    {
+                        if (direction == 'F')
+                        {
+                            while (cur_x <= std::max(x0_size, xN_size))
+                            {
+                                if (is_cancelled.load())
+                                {
+                                    break;
+                                }
+                                _sleep(1000);
+                                cur_x = cur_x + xs_size - xo_size;
+                                if (cur_x <= std::max(x0_size, xN_size))
+                                {
+                                    (*x_controller).set_velocity(10);
+                                    (*x_controller).move(cur_x);
+                                }
+                            }
+                            direction = 'B';
+                        }
+                        else if (direction == 'B')
+                        {
+                            while (cur_x >= std::min(x0_size, xN_size))
+                            {
 
+                                if (is_cancelled.load())
+                                {
+                                    break;
+                                }
+                                _sleep(1000);
+                                cur_x = cur_x - xs_size + xo_size;
+                                if (cur_x >= std::min(x0_size, xN_size))
+                                {
+                                    (*x_controller).set_velocity(10);
+                                    (*x_controller).move(cur_x);
+                                }
+                            }
+                            direction = 'F';
+                        }
+                        if (is_cancelled.load())
+                        {
+                            break;
+                        }
+                        cur_y = cur_y + (yN_size > y0_size ? 1 : -1) * (ys_size - yo_size);
+                        if (cur_y >= std::min(y0_size, yN_size) && cur_y <= std::max(y0_size, yN_size))
+                        {
+                            (*y_controller).set_velocity(10);
+                            (*y_controller).move(cur_y);
+                        }
+                    }
+                }
+                scanning_clicked = false;
+                ui->cancelScanningButton->setEnabled(false);
+                ui->moveToStartPositionButton->setEnabled(true);
+                ui->startScanningButton->setEnabled(true);
+                lg.unlock();
             }
         })
 {
@@ -192,7 +297,6 @@ PI::PI(QWidget *parent)
         {
             ui->xsLineEdit->setStyleSheet("color: green");
             ui->xsLabel->setText("");
-
             button_mask |= 16;
             if (button_mask == 255)
             {
@@ -222,7 +326,6 @@ PI::PI(QWidget *parent)
         {
             ui->ysLineEdit->setStyleSheet("color: green");
             ui->ysLabel->setText("");
-
             button_mask |= 32;
             if (button_mask == 255)
             {
@@ -353,7 +456,7 @@ PI::PI(QWidget *parent)
 
             ui->findAxesButton->setEnabled(false);
         }
-        catch (std::exception &e)
+        catch (std::exception &)
         {
             ui->logs->append("<span style=\"color:red\">Can't find axes</span>");
         }
@@ -365,6 +468,19 @@ PI::PI(QWidget *parent)
         ui->startScanningButton->setEnabled(false);
         move_to_start_position_clicked = true;
         move_to_start_position_var.notify_one();
+    });
+
+    connect(ui->startScanningButton, &QPushButton::clicked, this, [this]
+    {
+        ui->moveToStartPositionButton->setEnabled(false);
+        ui->startScanningButton->setEnabled(false);
+        scanning_clicked = true;
+        scanning_var.notify_one();
+    });
+
+    connect(ui->cancelScanningButton, &QPushButton::clicked, this, [this]
+    {
+        is_cancelled.store(true);
     });
 }
 

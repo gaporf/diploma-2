@@ -34,7 +34,7 @@
       <item>
        <widget class="QLabel" name="label_8">
         <property name="text">
-         <string>y0</string>
+         <string>yo</string>
         </property>
        </widget>
       </item>
@@ -278,8 +278,14 @@
   <tabstop>y0LineEdit</tabstop>
   <tabstop>xnLineEdit</tabstop>
   <tabstop>ynLineEdit</tabstop>
-  <tabstop>moveToStartPositionButton</tabstop>
+  <tabstop>xsLineEdit</tabstop>
+  <tabstop>ysLineEdit</tabstop>
+  <tabstop>xoLineEdit</tabstop>
+  <tabstop>yoLineEdit</tabstop>
   <tabstop>findAxesButton</tabstop>
+  <tabstop>moveToStartPositionButton</tabstop>
+  <tabstop>startScanningButton</tabstop>
+  <tabstop>cancelScanningButton</tabstop>
   <tabstop>logs</tabstop>
  </tabstops>
  <resources/>

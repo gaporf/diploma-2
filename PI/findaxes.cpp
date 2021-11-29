@@ -15,7 +15,7 @@ FindAxes::FindAxes(QWidget *parent, pi_controller **x, pi_controller **y) :
                 {
                     return x0_clicked;
                 });
-                (*x_controller)->set_velocity(20);
+                (*x_controller)->set_velocity(15);
                 (*x_controller)->move((*x_controller)->get_min_position());
                 x0_clicked = false;
                 enable_all();
@@ -31,7 +31,7 @@ FindAxes::FindAxes(QWidget *parent, pi_controller **x, pi_controller **y) :
                 {
                     return xN_clicked;
                 });
-                (*x_controller)->set_velocity(20);
+                (*x_controller)->set_velocity(15);
                 (*x_controller)->move((*x_controller)->get_max_position());
                 xN_clicked = false;
                 enable_all();
@@ -47,7 +47,7 @@ FindAxes::FindAxes(QWidget *parent, pi_controller **x, pi_controller **y) :
                 {
                     return y0_clicked;
                 });
-                (*y_controller)->set_velocity(20);
+                (*y_controller)->set_velocity(15);
                 (*y_controller)->move((*y_controller)->get_min_position());
                 y0_clicked = false;
                 enable_all();
@@ -63,9 +63,66 @@ FindAxes::FindAxes(QWidget *parent, pi_controller **x, pi_controller **y) :
                 {
                     return yN_clicked;
                 });
-                (*y_controller)->set_velocity(20);
+                (*y_controller)->set_velocity(15);
                 (*y_controller)->move((*y_controller)->get_max_position());
                 yN_clicked = false;
+                enable_all();
+                lg.unlock();
+            }
+        }),
+    xs_thread([this]
+        {
+            for(;;)
+            {
+                std::unique_lock<std::mutex> lg(m);
+                xs_var.wait(lg, [this]
+                {
+                    return xs_clicked;
+                });
+                double cur_position = (*x_controller)->get_current_position();
+                (*x_controller)->set_velocity(5);
+                (*x_controller)->move(std::max((*x_controller)->get_min_position(), cur_position - 5));
+                (*x_controller)->move(std::min((*x_controller)->get_max_position(), cur_position + 5));
+                (*x_controller)->move(cur_position);
+                xs_clicked = false;
+                enable_all();
+                lg.unlock();
+            }
+        }),
+    ys_thread([this]
+        {
+            for(;;)
+            {
+                std::unique_lock<std::mutex> lg(m);
+                ys_var.wait(lg, [this]
+                {
+                    return ys_clicked;
+                });
+                double cur_position = (*y_controller)->get_current_position();
+                (*y_controller)->set_velocity(5);
+                (*y_controller)->move(std::max((*y_controller)->get_min_position(), cur_position - 5));
+                (*y_controller)->move(std::min((*y_controller)->get_max_position(), cur_position + 5));
+                (*y_controller)->move(cur_position);
+                ys_clicked = false;
+                enable_all();
+                lg.unlock();
+            }
+        }),
+    ca_thread([this]
+        {
+            for(;;)
+            {
+                std::unique_lock<std::mutex> lg(m);
+                ca_var.wait(lg, [this]
+                {
+                    return ca_clicked;
+                });
+                std::string x_name = (*x_controller)->get_axis_name();
+                std::string y_name = (*y_controller)->get_axis_name();
+                std::swap(*x_controller, *y_controller);
+                (*x_controller)->set_axis_name(x_name);
+                (*y_controller)->set_axis_name(y_name);
+                ca_clicked = false;
                 enable_all();
                 lg.unlock();
             }
@@ -90,12 +147,8 @@ FindAxes::FindAxes(QWidget *parent, pi_controller **x, pi_controller **y) :
     connect(ui->showX, &QPushButton::clicked, this, [this]
     {
         disable_all();
-        double cur_position = (*x_controller)->get_current_position();
-        (*x_controller)->set_velocity(5);
-        (*x_controller)->move(std::max((*x_controller)->get_min_position(), cur_position - 5));
-        (*x_controller)->move(std::min((*x_controller)->get_max_position(), cur_position + 5));
-        (*x_controller)->move(cur_position);
-        enable_all();
+        xs_clicked = true;
+        xs_var.notify_one();
     });
 
     connect(ui->moveYTo0, &QPushButton::clicked, this, [this]
@@ -115,23 +168,15 @@ FindAxes::FindAxes(QWidget *parent, pi_controller **x, pi_controller **y) :
     connect(ui->showY, &QPushButton::clicked, this, [this]
     {
         disable_all();
-        double cur_position = (*y_controller)->get_current_position();
-        (*y_controller)->set_velocity(5);
-        (*y_controller)->move(std::max((*y_controller)->get_min_position(), cur_position - 5));
-        (*y_controller)->move(std::min((*y_controller)->get_max_position(), cur_position + 5));
-        (*y_controller)->move(cur_position);
-        enable_all();
+        ys_clicked = true;
+        ys_var.notify_one();
     });
 
     connect(ui->changeAxes, &QPushButton::clicked, this, [this]
     {
        disable_all();
-       std::string x_name = (*x_controller)->get_axis_name();
-       std::string y_name = (*y_controller)->get_axis_name();
-       std::swap(*x_controller, *y_controller);
-       (*x_controller)->set_axis_name(x_name);
-       (*y_controller)->set_axis_name(y_name);
-        enable_all();
+        ca_clicked = true;
+        ca_var.notify_one();
     });
 }
 

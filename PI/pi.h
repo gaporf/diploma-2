@@ -39,5 +39,7 @@ private:
     std::thread scanning_thread;
     std::condition_variable scanning_var;
     bool scanning_clicked = false;
+
+    std::atomic_bool is_cancelled;
 };
 #endif // PI_H

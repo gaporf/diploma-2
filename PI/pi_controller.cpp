@@ -398,6 +398,7 @@ std::string pi_controller::get_axis_name()
 
 void pi_controller::set_axis_name(std::string new_axis)
 {
+    push_log("Changed axis from " + axis + " to " + new_axis);
     axis = new_axis;
 }
 

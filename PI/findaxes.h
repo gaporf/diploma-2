@@ -45,6 +45,18 @@ private:
     std::condition_variable yN_var;
     bool yN_clicked = false;
 
+    std::thread xs_thread;
+    std::condition_variable xs_var;
+    bool xs_clicked = false;
+
+    std::thread ys_thread;
+    std::condition_variable ys_var;
+    bool ys_clicked = false;
+
+    std::thread ca_thread;
+    std::condition_variable ca_var;
+    bool ca_clicked = false;
+
     void disable_all();
 
     void enable_all();
