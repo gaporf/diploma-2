@@ -78,11 +78,54 @@
     </layout>
    </item>
    <item>
-    <widget class="QPushButton" name="changeAxes">
-     <property name="text">
-      <string>change axes</string>
-     </property>
-    </widget>
+    <layout class="QHBoxLayout" name="horizontalLayout_3">
+     <item>
+      <widget class="QPushButton" name="moveZTo0">
+       <property name="text">
+        <string>move z to 0</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="moveZToN">
+       <property name="text">
+        <string>move z to 102</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="showZ">
+       <property name="text">
+        <string>show z</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout_4">
+     <item>
+      <widget class="QPushButton" name="swapXY">
+       <property name="text">
+        <string>swap x y</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="swapXZ">
+       <property name="text">
+        <string>swap x z</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="swapYZ">
+       <property name="text">
+        <string>swap y z</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
    </item>
    <item>
     <spacer name="verticalSpacer_2">

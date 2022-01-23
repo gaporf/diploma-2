@@ -402,7 +402,7 @@ PI::PI(QWidget *parent)
             QString logs = QString().fromStdString(x_controller->get_logs());
             if (logs != "")
             {
-                logs = "<span style=\"color:blue\">" + logs + "</span>";
+                logs = "<span style=\"color:red\">" + logs + "</span>";
                 ui->logs->append(logs);
             }
         }
@@ -411,7 +411,16 @@ PI::PI(QWidget *parent)
             QString logs = QString().fromStdString(y_controller->get_logs());
             if (logs != "")
             {
-                logs = "<span style=\"color:orange\">" + logs + "</span>";
+                logs = "<span style=\"color:green\">" + logs + "</span>";
+                ui->logs->append(logs);
+            }
+        }
+        if (z_controller != nullptr)
+        {
+            QString logs = QString().fromStdString(z_controller->get_logs());
+            if (logs != "")
+            {
+                logs = "<span style=\"color:blue\">" + logs + "</span>";
                 ui->logs->append(logs);
             }
         }
@@ -425,24 +434,31 @@ PI::PI(QWidget *parent)
             x_controller = new pi_controller("x");
             int x_port = x_controller->connect_vid_usb(0);
             y_controller = new pi_controller("y");
-            y_controller->connect_vid_usb(x_port + 1);
+            int y_port = y_controller->connect_vid_usb(x_port + 1);
+            z_controller = new pi_controller("z");
+            z_controller->connect_vid_usb(y_port + 1);
 
             x_controller->get_controller_info();
             y_controller->get_controller_info();
+            z_controller->get_controller_info();
 
             x_controller->get_axes_info();
             y_controller->get_axes_info();
+            z_controller->get_axes_info();
 
             x_controller->init_stage();
             y_controller->init_stage();
+            z_controller->init_stage();
 
             x_controller->reference();
             y_controller->reference();
+            z_controller->reference();
 
             x_controller->get_limits();
             y_controller->get_limits();
+            z_controller->get_limits();
 
-            FindAxes *findAxes = new FindAxes(nullptr, &x_controller, &y_controller);
+            FindAxes *findAxes = new FindAxes(nullptr, &x_controller, &y_controller, &z_controller);
             findAxes->show();
 
             ui->x0LineEdit->setEnabled(true);
@@ -488,4 +504,3 @@ PI::~PI()
 {
     delete ui;
 }
-

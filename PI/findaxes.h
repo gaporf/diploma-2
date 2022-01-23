@@ -19,13 +19,14 @@ class FindAxes : public QDialog
     Q_OBJECT
 
 public:
-    FindAxes(QWidget *parent = nullptr, pi_controller **x = nullptr, pi_controller **y = nullptr);
+    FindAxes(QWidget *parent = nullptr, pi_controller **x = nullptr, pi_controller **y = nullptr, pi_controller **z = nullptr);
     ~FindAxes();
 
 private:
     Ui::FindAxes *ui;
     pi_controller **x_controller;
     pi_controller **y_controller;
+    pi_controller **z_controller;
 
     std::mutex m;
 
@@ -45,6 +46,14 @@ private:
     std::condition_variable yN_var;
     bool yN_clicked = false;
 
+    std::thread z0_thread;
+    std::condition_variable z0_var;
+    bool z0_clicked = false;
+
+    std::thread zN_thread;
+    std::condition_variable zN_var;
+    bool zN_clicked = false;
+
     std::thread xs_thread;
     std::condition_variable xs_var;
     bool xs_clicked = false;
@@ -53,12 +62,23 @@ private:
     std::condition_variable ys_var;
     bool ys_clicked = false;
 
-    std::thread ca_thread;
-    std::condition_variable ca_var;
-    bool ca_clicked = false;
+    std::thread zs_thread;
+    std::condition_variable zs_var;
+    bool zs_clicked = false;
+
+    std::thread xy_thread;
+    std::condition_variable xy_var;
+    bool xy_clicked = false;
+
+    std::thread xz_thread;
+    std::condition_variable xz_var;
+    bool xz_clicked = false;
+
+    std::thread yz_thread;
+    std::condition_variable yz_var;
+    bool yz_clicked = false;
 
     void disable_all();
-
     void enable_all();
 };
 

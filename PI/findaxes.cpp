@@ -1,11 +1,12 @@
 #include "findaxes.h"
 #include "ui_findaxes.h"
 
-FindAxes::FindAxes(QWidget *parent, pi_controller **x, pi_controller **y) :
+FindAxes::FindAxes(QWidget *parent, pi_controller **x, pi_controller **y, pi_controller **z) :
     QDialog(parent),
     ui(new Ui::FindAxes),
     x_controller(x),
     y_controller(y),
+    z_controller(z),
     x0_thread([this]
         {
             for(;;)
@@ -70,6 +71,38 @@ FindAxes::FindAxes(QWidget *parent, pi_controller **x, pi_controller **y) :
                 lg.unlock();
             }
         }),
+    z0_thread([this]
+        {
+            for(;;)
+            {
+                std::unique_lock<std::mutex> lg(m);
+                z0_var.wait(lg, [this]
+                {
+                    return z0_clicked;
+                });
+                (*z_controller)->set_velocity(15);
+                (*z_controller)->move((*z_controller)->get_min_position());
+                z0_clicked = false;
+                enable_all();
+                lg.unlock();
+            }
+        }),
+    zN_thread([this]
+        {
+            for(;;)
+            {
+                std::unique_lock<std::mutex> lg(m);
+                zN_var.wait(lg, [this]
+                {
+                    return zN_clicked;
+                });
+                (*z_controller)->set_velocity(15);
+                (*z_controller)->move((*z_controller)->get_max_position());
+                zN_clicked = false;
+                enable_all();
+                lg.unlock();
+            }
+        }),
     xs_thread([this]
         {
             for(;;)
@@ -108,21 +141,78 @@ FindAxes::FindAxes(QWidget *parent, pi_controller **x, pi_controller **y) :
                 lg.unlock();
             }
         }),
-    ca_thread([this]
+    zs_thread([this]
         {
             for(;;)
             {
                 std::unique_lock<std::mutex> lg(m);
-                ca_var.wait(lg, [this]
+                zs_var.wait(lg, [this]
                 {
-                    return ca_clicked;
+                    return zs_clicked;
+                });
+                double cur_position = (*z_controller)->get_current_position();
+                (*z_controller)->set_velocity(5);
+                (*z_controller)->move(std::max((*z_controller)->get_min_position(), cur_position - 5));
+                (*z_controller)->move(std::min((*z_controller)->get_max_position(), cur_position + 5));
+                (*z_controller)->move(cur_position);
+                zs_clicked =false;
+                enable_all();
+                lg.unlock();
+            }
+        }),
+    xy_thread([this]
+        {
+            for(;;)
+            {
+                std::unique_lock<std::mutex> lg(m);
+                xy_var.wait(lg, [this]
+                {
+                    return xy_clicked;
                 });
                 std::string x_name = (*x_controller)->get_axis_name();
                 std::string y_name = (*y_controller)->get_axis_name();
                 std::swap(*x_controller, *y_controller);
                 (*x_controller)->set_axis_name(x_name);
                 (*y_controller)->set_axis_name(y_name);
-                ca_clicked = false;
+                xy_clicked = false;
+                enable_all();
+                lg.unlock();
+            }
+        }),
+    xz_thread([this]
+        {
+            for(;;)
+            {
+                std::unique_lock<std::mutex> lg(m);
+                xz_var.wait(lg, [this]
+                {
+                    return xz_clicked;
+                });
+                std::string x_name = (*x_controller)->get_axis_name();
+                std::string z_name = (*z_controller)->get_axis_name();
+                std::swap(*x_controller, *z_controller);
+                (*x_controller)->set_axis_name(x_name);
+                (*z_controller)->set_axis_name(z_name);
+                xz_clicked = false;
+                enable_all();
+                lg.unlock();
+            }
+        }),
+    yz_thread([this]
+        {
+            for(;;)
+            {
+                std::unique_lock<std::mutex> lg(m);
+                yz_var.wait(lg, [this]
+                {
+                    return yz_clicked;
+                });
+                std::string y_name = (*y_controller)->get_axis_name();
+                std::string z_name = (*z_controller)->get_axis_name();
+                std::swap(*y_controller, *z_controller);
+                (*y_controller)->set_axis_name(y_name);
+                (*z_controller)->set_axis_name(z_name);
+                yz_clicked = false;
                 enable_all();
                 lg.unlock();
             }
@@ -172,11 +262,25 @@ FindAxes::FindAxes(QWidget *parent, pi_controller **x, pi_controller **y) :
         ys_var.notify_one();
     });
 
-    connect(ui->changeAxes, &QPushButton::clicked, this, [this]
+    connect(ui->swapXY, &QPushButton::clicked, this, [this]
     {
-       disable_all();
-        ca_clicked = true;
-        ca_var.notify_one();
+        disable_all();
+        xy_clicked = true;
+        xy_var.notify_one();
+    });
+
+    connect(ui->swapXZ, &QPushButton::clicked, this, [this]
+    {
+        disable_all();
+        xz_clicked = true;
+        xz_var.notify_one();
+    });
+
+    connect(ui->swapYZ, &QPushButton::clicked, this, [this]
+    {
+        disable_all();
+        yz_clicked = true;
+        yz_var.notify_one();
     });
 }
 
@@ -193,7 +297,12 @@ void FindAxes::enable_all()
     ui->moveYTo0->setEnabled(true);
     ui->moveYToN->setEnabled(true);
     ui->showY->setEnabled(true);
-    ui->changeAxes->setEnabled(true);
+    ui->moveZTo0->setEnabled(true);
+    ui->moveZToN->setEnabled(true);
+    ui->showZ->setEnabled(true);
+    ui->swapXY->setEnabled(true);
+    ui->swapXZ->setEnabled(true);
+    ui->swapYZ->setEnabled(true);
 }
 
 void FindAxes::disable_all()
@@ -204,5 +313,10 @@ void FindAxes::disable_all()
     ui->moveYTo0->setEnabled(false);
     ui->moveYToN->setEnabled(false);
     ui->showY->setEnabled(false);
-    ui->changeAxes->setEnabled(false);
+    ui->moveZTo0->setEnabled(false);
+    ui->moveZToN->setEnabled(false);
+    ui->showZ->setEnabled(false);
+    ui->swapXY->setEnabled(false);
+    ui->swapXZ->setEnabled(false);
+    ui->swapYZ->setEnabled(false);
 }
