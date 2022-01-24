@@ -262,6 +262,27 @@ FindAxes::FindAxes(QWidget *parent, pi_controller **x, pi_controller **y, pi_con
         ys_var.notify_one();
     });
 
+    connect(ui->moveZTo0, &QPushButton::clicked, this, [this]
+    {
+        disable_all();
+        z0_clicked = true;
+        z0_var.notify_one();
+    });
+
+    connect(ui->moveZToN, &QPushButton::clicked, this, [this]
+    {
+        disable_all();
+        zN_clicked = true;
+        zN_var.notify_one();
+    });
+
+    connect(ui->showZ, &QPushButton::clicked, this, [this]
+    {
+        disable_all();
+        zs_clicked = true;
+        zs_var.notify_one();
+    });
+
     connect(ui->swapXY, &QPushButton::clicked, this, [this]
     {
         disable_all();

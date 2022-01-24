@@ -43,5 +43,7 @@ private:
     bool scanning_clicked = false;
 
     std::atomic_bool is_cancelled;
+
+    void get_camera(double x_pos, double y_pos);
 };
 #endif // PI_H

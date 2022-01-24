@@ -106,7 +106,7 @@ PI::PI(QWidget *parent)
                                 {
                                     break;
                                 }
-                                _sleep(1000);
+                                get_camera(x_controller->get_current_position(), y_controller->get_current_position());
                                 cur_x = cur_x + xs_size - xo_size;
                                 if (cur_x <= std::max(x0_size, xN_size))
                                 {
@@ -125,7 +125,7 @@ PI::PI(QWidget *parent)
                                 {
                                     break;
                                 }
-                                _sleep(1000);
+                                get_camera(x_controller->get_current_position(), y_controller->get_current_position());
                                 cur_x = cur_x - xs_size + xo_size;
                                 if (cur_x >= std::min(x0_size, xN_size))
                                 {
@@ -503,4 +503,11 @@ PI::PI(QWidget *parent)
 PI::~PI()
 {
     delete ui;
+}
+
+void PI::get_camera(double x_pos, double y_pos)
+{
+    z_controller->set_velocity(10);
+    z_controller->move(z_controller->get_min_position());
+    z_controller->move(z_controller->get_max_position());
 }
