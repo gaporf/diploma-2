@@ -8,7 +8,9 @@
 #include <condition_variable>
 #include <mutex>
 
+#include "uEyeCamera.h"
 #include "findaxes.h"
+#include "findcamera.h"
 #include "pi_controller.h"
 
 QT_BEGIN_NAMESPACE
@@ -29,6 +31,7 @@ private:
     pi_controller *x_controller = nullptr;
     pi_controller *y_controller = nullptr;
     pi_controller *z_controller = nullptr;
+    uEyeCamera *camera = nullptr;
 
     int button_mask = 0;
 
@@ -44,6 +47,6 @@ private:
 
     std::atomic_bool is_cancelled;
 
-    void get_camera(double x_pos, double y_pos);
+    void capture_and_save(double x_pos, double y_pos);
 };
 #endif // PI_H

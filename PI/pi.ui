@@ -228,6 +228,13 @@
        </widget>
       </item>
       <item>
+       <widget class="QPushButton" name="findCameraButton">
+        <property name="text">
+         <string>Find camera</string>
+        </property>
+       </widget>
+      </item>
+      <item>
        <widget class="QPushButton" name="moveToStartPositionButton">
         <property name="enabled">
          <bool>false</bool>

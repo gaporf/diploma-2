@@ -10,17 +10,23 @@ CONFIG += c++11
 
 SOURCES += \
     findaxes.cpp \
+    findcamera.cpp \
     main.cpp \
     pi.cpp \
-    pi_controller.cpp
+    pi_controller.cpp \
+    uEyeCamera.cpp
 
 HEADERS += \
     findaxes.h \
+    findcamera.h \
     pi.h \
-    pi_controller.h
+    pi_controller.h \
+    uEye.h \
+    uEyeCamera.h
 
 FORMS += \
     findaxes.ui \
+    findcamera.ui \
     pi.ui
 
 # Default rules for deployment.
@@ -34,3 +40,14 @@ else:unix: LIBS += -L$$PWD/./ -lPI_Mercury_GCS_DLL
 
 INCLUDEPATH += $$PWD/.
 DEPENDPATH += $$PWD/.
+
+win32:CONFIG(release, debug|release): LIBS += -L$$PWD/./ -luEye_api_64
+else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/./ -luEye_api_64d
+
+INCLUDEPATH += $$PWD/.
+DEPENDPATH += $$PWD/.
+
+win32-g++:CONFIG(release, debug|release): PRE_TARGETDEPS += $$PWD/./libuEye_api_64.a
+else:win32-g++:CONFIG(debug, debug|release): PRE_TARGETDEPS += $$PWD/./libuEye_api_64d.a
+else:win32:!win32-g++:CONFIG(release, debug|release): PRE_TARGETDEPS += $$PWD/./uEye_api_64.lib
+else:win32:!win32-g++:CONFIG(debug, debug|release): PRE_TARGETDEPS += $$PWD/./uEye_api_64d.lib

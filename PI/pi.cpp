@@ -96,41 +96,41 @@ PI::PI(QWidget *parent)
                     double cur_y = (*y_controller).get_current_position();
                     char direction = (x0_size < xN_size ? 'F' : 'B');
                     ui->cancelScanningButton->setEnabled(true);
-                    while ((y0_size < yN_size && cur_y <= yN_size) || (y0_size > yN_size && cur_y >= yN_size))
+                    while ((y0_size < yN_size && cur_y - (ys_size - yo_size) / 2 <= yN_size) || (y0_size > yN_size && cur_y + (ys_size - yo_size) / 2 >= yN_size))
                     {
                         if (direction == 'F')
                         {
-                            while (cur_x <= std::max(x0_size, xN_size))
+                            while (cur_x - (xs_size - xo_size) / 2 <= max(x0_size, xN_size))
                             {
                                 if (is_cancelled.load())
                                 {
                                     break;
                                 }
-                                get_camera(x_controller->get_current_position(), y_controller->get_current_position());
+                                capture_and_save(x_controller->get_current_position(), y_controller->get_current_position());
                                 cur_x = cur_x + xs_size - xo_size;
-                                if (cur_x <= std::max(x0_size, xN_size))
+                                if (cur_x - (xs_size - xo_size) / 2 <= max(x0_size, xN_size))
                                 {
                                     (*x_controller).set_velocity(10);
-                                    (*x_controller).move(cur_x);
+                                    (*x_controller).move(min(cur_x, x_controller->get_max_position()));
                                 }
                             }
                             direction = 'B';
                         }
                         else if (direction == 'B')
                         {
-                            while (cur_x >= std::min(x0_size, xN_size))
+                            while (cur_x + (xs_size - xo_size) / 2 >= min(x0_size, xN_size))
                             {
 
                                 if (is_cancelled.load())
                                 {
                                     break;
                                 }
-                                get_camera(x_controller->get_current_position(), y_controller->get_current_position());
+                                capture_and_save(x_controller->get_current_position(), y_controller->get_current_position());
                                 cur_x = cur_x - xs_size + xo_size;
-                                if (cur_x >= std::min(x0_size, xN_size))
+                                if (cur_x + (xs_size - xo_size) / 2 >= min(x0_size, xN_size))
                                 {
                                     (*x_controller).set_velocity(10);
-                                    (*x_controller).move(cur_x);
+                                    (*x_controller).move(max(cur_x, x_controller->get_min_position()));
                                 }
                             }
                             direction = 'F';
@@ -140,10 +140,11 @@ PI::PI(QWidget *parent)
                             break;
                         }
                         cur_y = cur_y + (yN_size > y0_size ? 1 : -1) * (ys_size - yo_size);
-                        if (cur_y >= std::min(y0_size, yN_size) && cur_y <= std::max(y0_size, yN_size))
+                        cur_y = min(y_controller->get_max_position(), max(y_controller->get_min_position(), cur_y));
+                        if (cur_y + (ys_size - yo_size) / 2 >= min(y0_size, yN_size) && cur_y - (ys_size - yo_size) / 2 <= max(y0_size, yN_size))
                         {
                             (*y_controller).set_velocity(10);
-                            (*y_controller).move(cur_y);
+                            (*y_controller).move(max(y_controller->get_min_position(), min(y_controller->get_max_position(), cur_y)));
                         }
                     }
                 }
@@ -402,7 +403,7 @@ PI::PI(QWidget *parent)
             QString logs = QString().fromStdString(x_controller->get_logs());
             if (logs != "")
             {
-                logs = "<span style=\"color:red\">" + logs + "</span>";
+                logs = "<span style=\"color:orange\">" + logs + "</span>";
                 ui->logs->append(logs);
             }
         }
@@ -421,6 +422,15 @@ PI::PI(QWidget *parent)
             if (logs != "")
             {
                 logs = "<span style=\"color:blue\">" + logs + "</span>";
+                ui->logs->append(logs);
+            }
+        }
+        if (camera != nullptr)
+        {
+            QString logs = QString().fromStdString(camera->get_logs());
+            if (logs != "")
+            {
+                logs = "<span style=\"color:grey\">" + logs + "</span>";
                 ui->logs->append(logs);
             }
         }
@@ -478,6 +488,22 @@ PI::PI(QWidget *parent)
         }
     });
 
+    connect(ui->findCameraButton, &QPushButton::clicked, this, [this]
+    {
+        try
+        {
+
+            FindCamera *findCamera = new FindCamera(nullptr, camera);
+            findCamera->show();
+
+            ui->findCameraButton->setEnabled(false);
+        }
+        catch (std::exception &)
+        {
+            ui->logs->append("<span style=\"color:red\">Can't find uEyeCamera</span>");
+        }
+    });
+
     connect(ui->moveToStartPositionButton, &QPushButton::clicked, this, [this]
     {
         ui->moveToStartPositionButton->setEnabled(false);
@@ -505,9 +531,16 @@ PI::~PI()
     delete ui;
 }
 
-void PI::get_camera(double x_pos, double y_pos)
+void PI::capture_and_save(double x_pos, double y_pos)
 {
     z_controller->set_velocity(10);
-    z_controller->move(z_controller->get_min_position());
-    z_controller->move(z_controller->get_max_position());
+
+    if (z_controller->get_min_position() == z_controller->get_current_position())
+    {
+        z_controller->move(z_controller->get_max_position());
+    }
+    else
+    {
+        z_controller->move(z_controller->get_min_position());
+    }
 }
