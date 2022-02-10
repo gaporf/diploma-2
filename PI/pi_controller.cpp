@@ -2,7 +2,7 @@
 
 #include "pi_controller.h"
 
-pi_controller::pi_controller(std::string const &axis) : axis(axis), lib("PI_GCS2_DLL_x64.dll") {}
+pi_controller::pi_controller(const std::string &axis, const std::string &stage) : axis(axis), stage(stage), lib("PI_GCS2_DLL_x64.dll") {}
 
 std::string pi_controller::get_logs()
 {
@@ -44,7 +44,7 @@ int pi_controller::connect_vid_usb(int initial_port)
             return port;
         }
     }
-    throw std::runtime_error("Couldn't find my connected PI controller");
+    throw std::runtime_error("Couldn't find connected PI controller");
 }
 
 void pi_controller::get_controller_info()
@@ -90,7 +90,6 @@ void pi_controller::get_axes_info()
 void pi_controller::init_stage()
 {
     push_log("Initializing stage");
-    const char* stage = "M-511.DD";
     const char* axes = "1";
     char buf[255];
 
@@ -108,7 +107,7 @@ void pi_controller::init_stage()
         }
         const char* ptr_stage = strchr(buf, '=');
         ptr_stage++;
-        if (strnicmp(stage, ptr_stage, strlen(stage)) == 0)
+        if (strnicmp(stage.c_str(), ptr_stage, stage.length()) == 0)
         {
             push_log("stage type is already defined");
             return;
@@ -122,7 +121,7 @@ void pi_controller::init_stage()
         throw std::runtime_error("Couldn't find PI_CST function in dll");
     }
     {
-        int res = PI_CST(id, axes, stage);
+        int res = PI_CST(id, axes, stage.c_str());
         if (res == 0)
         {
             throw std::runtime_error("CST failed");

@@ -32,14 +32,14 @@
      <item>
       <widget class="QPushButton" name="moveXTo0">
        <property name="text">
-        <string>move x to 0</string>
+        <string>move x to min</string>
        </property>
       </widget>
      </item>
      <item>
       <widget class="QPushButton" name="moveXToN">
        <property name="text">
-        <string>move x to 102</string>
+        <string>move x to max</string>
        </property>
       </widget>
      </item>
@@ -57,14 +57,14 @@
      <item>
       <widget class="QPushButton" name="moveYTo0">
        <property name="text">
-        <string>move y to 0</string>
+        <string>move y to min</string>
        </property>
       </widget>
      </item>
      <item>
       <widget class="QPushButton" name="moveYToN">
        <property name="text">
-        <string>move y to 102</string>
+        <string>move y to max</string>
        </property>
       </widget>
      </item>
@@ -82,14 +82,14 @@
      <item>
       <widget class="QPushButton" name="moveZTo0">
        <property name="text">
-        <string>move z to 0</string>
+        <string>move z to min</string>
        </property>
       </widget>
      </item>
      <item>
       <widget class="QPushButton" name="moveZToN">
        <property name="text">
-        <string>move z to 102</string>
+        <string>move z to max</string>
        </property>
       </widget>
      </item>

@@ -8,7 +8,7 @@
 
 struct pi_controller
 {
-    pi_controller(std::string const &axis);
+    pi_controller(const std::string &axis, const std::string &stage);
 
     std::string get_logs();
 
@@ -39,6 +39,7 @@ struct pi_controller
     double get_current_position();
 private:
     std::string axis;
+    std::string stage;
     int port;
     long id;
     double min_position;

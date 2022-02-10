@@ -171,20 +171,36 @@ void uEyeCamera::push_log(std::string log)
     logs.push("camera: " + log + "<br>");
 }
 
-void uEyeCamera::capture(std::string path)
+void uEyeCamera::capture(std::string path, pi_controller *z_controller)
 {
     std::cout << path << std::endl;
     ReallocteBuffers();
 
+    if (z_controller->get_current_position() != z_controller->get_max_position() && z_controller->get_current_position() != z_controller->get_min_position())
+    {
+        z_controller->move(z_controller->get_min_position());
+    }
     INT nRet = is_CaptureVideo(m_hCam, IS_DONT_WAIT);
+    std::thread th([z_controller]
+    {
+        if (z_controller->get_current_position() == z_controller->get_min_position())
+        {
+            z_controller->move(z_controller->get_max_position());
+        }
+        else
+        {
+            z_controller->move(z_controller->get_min_position());
+        }
+    });
+    th.join();
     wait_picture.store(1);
     while (wait_picture != 2)
     {
         _sleep(500);
     }
-
     cv::Mat image(cv::Size(m_nSizeX, m_nSizeY), CV_8UC1, picture, m_nSizeX);
     imwrite(path, image);
+    nRet = is_StopLiveVideo(m_hCam, IS_FORCE_VIDEO_STOP);
 }
 
 std::string uEyeCamera::get_logs()

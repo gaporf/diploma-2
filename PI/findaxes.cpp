@@ -80,7 +80,7 @@ FindAxes::FindAxes(QWidget *parent, pi_controller **x, pi_controller **y, pi_con
                 {
                     return z0_clicked;
                 });
-                (*z_controller)->set_velocity(15);
+                (*z_controller)->set_velocity(0.5);
                 (*z_controller)->move((*z_controller)->get_min_position());
                 z0_clicked = false;
                 enable_all();
@@ -96,7 +96,7 @@ FindAxes::FindAxes(QWidget *parent, pi_controller **x, pi_controller **y, pi_con
                 {
                     return zN_clicked;
                 });
-                (*z_controller)->set_velocity(15);
+                (*z_controller)->set_velocity(0.5);
                 (*z_controller)->move((*z_controller)->get_max_position());
                 zN_clicked = false;
                 enable_all();
@@ -151,7 +151,7 @@ FindAxes::FindAxes(QWidget *parent, pi_controller **x, pi_controller **y, pi_con
                     return zs_clicked;
                 });
                 double cur_position = (*z_controller)->get_current_position();
-                (*z_controller)->set_velocity(5);
+                (*z_controller)->set_velocity(0.25);
                 (*z_controller)->move(std::max((*z_controller)->get_min_position(), cur_position - 5));
                 (*z_controller)->move(std::min((*z_controller)->get_max_position(), cur_position + 5));
                 (*z_controller)->move(cur_position);

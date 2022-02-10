@@ -5,6 +5,7 @@
 #include <iostream>
 #include <thread>
 
+#include <QFileDialog>
 
 PI::PI(QWidget *parent)
     : QMainWindow(parent)
@@ -441,11 +442,11 @@ PI::PI(QWidget *parent)
     {
         try
         {
-            x_controller = new pi_controller("x");
+            x_controller = new pi_controller("x", "M-511.DD");
             int x_port = x_controller->connect_vid_usb(0);
-            y_controller = new pi_controller("y");
+            y_controller = new pi_controller("y", "M-511.DD");
             int y_port = y_controller->connect_vid_usb(x_port + 1);
-            z_controller = new pi_controller("z");
+            z_controller = new pi_controller("z", "M-501.1DG");
             z_controller->connect_vid_usb(y_port + 1);
 
             x_controller->get_controller_info();
@@ -524,6 +525,12 @@ PI::PI(QWidget *parent)
     {
         is_cancelled.store(true);
     });
+
+    connect(ui->browseButton, &QPushButton::clicked, this, [this]
+    {
+        QString dir = QFileDialog::getExistingDirectory(this, tr("Open directory"), "C://", QFileDialog::ShowDirsOnly);
+        ui->pathLine->setText(dir);
+    });
 }
 
 PI::~PI()
@@ -533,5 +540,7 @@ PI::~PI()
 
 void PI::capture_and_save(double x_pos, double y_pos)
 {
-    camera->capture("C:\\Users\\gapor\\Desktop\\uEyeSequence\\test\\t.png");
+    std::string dir_to_save = ui->pathLine->text().toStdString() + "/" + std::to_string(x_pos) + "_" + std::to_string(y_pos);
+    QDir().mkdir(QString::fromStdString(dir_to_save));
+    camera->capture(dir_to_save, z_controller);
 }

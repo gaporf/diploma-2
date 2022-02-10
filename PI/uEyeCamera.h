@@ -11,6 +11,7 @@
 #include "opencv2/highgui.hpp"
 
 #include "uEye.h"
+#include "pi_controller.h"
 
 struct uEyeCamera
 {
@@ -20,7 +21,7 @@ struct uEyeCamera
 
     void load_config();
 
-    void capture(std::string path);
+    void capture(std::string path, pi_controller *z);
 private:
     QLibrary lib;
 
