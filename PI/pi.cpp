@@ -492,7 +492,7 @@ PI::PI(QWidget *parent)
     {
         try
         {
-
+            camera = new uEyeCamera();
             FindCamera *findCamera = new FindCamera(nullptr, camera);
             findCamera->show();
 
@@ -533,14 +533,5 @@ PI::~PI()
 
 void PI::capture_and_save(double x_pos, double y_pos)
 {
-    z_controller->set_velocity(10);
-
-    if (z_controller->get_min_position() == z_controller->get_current_position())
-    {
-        z_controller->move(z_controller->get_max_position());
-    }
-    else
-    {
-        z_controller->move(z_controller->get_min_position());
-    }
+    camera->capture("C:\\Users\\gapor\\Desktop\\uEyeSequence\\test\\t.png");
 }

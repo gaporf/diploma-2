@@ -2,8 +2,9 @@
 
 #include "uEyeCamera.h"
 
-uEyeCamera::uEyeCamera() : m_hCam(static_cast<HIDS>(0)), m_nBuffersNew(850)
+uEyeCamera::uEyeCamera() : m_hCam(static_cast<HIDS>(0)), m_nBuffersNew(850), lib("opencv_world455.dll")
 {
+
     INT nRet = is_InitCamera(&m_hCam, nullptr);
     if (nRet != IS_SUCCESS)
     {
@@ -87,7 +88,7 @@ uEyeCamera::uEyeCamera() : m_hCam(static_cast<HIDS>(0)), m_nBuffersNew(850)
     push_log("DLL version = " + std::string(strDllVer));
 }
 
-void uEyeCamera::load_config(std::string path)
+void uEyeCamera::load_config()
 {
     if (is_ParameterSet(m_hCam, IS_PARAMETERSET_CMD_LOAD_FILE, NULL, NULL) == IS_SUCCESS)
     {
@@ -135,6 +136,29 @@ void uEyeCamera::load_config(std::string path)
                 throw std::runtime_error("Unknown color mode");
         }
 
+        ReallocteBuffers();
+        InitSliderExposure();
+
+        nRet = is_PixelClock(m_hCam, IS_PIXELCLOCK_CMD_GET, (void*)&m_nCamPclk, sizeof(m_nCamPclk));
+        if (nRet != IS_SUCCESS)
+        {
+            throw std::runtime_error("Can't get Pixel Clock");
+        }
+        push_log("Pixel clock = " + std::to_string(m_nCamPclk));
+
+        double newFps;
+        nRet = is_SetFrameRate(m_hCam, IS_GET_FRAMERATE, &newFps);
+        if (nRet != IS_SUCCESS)
+        {
+            throw std::runtime_error("Can't get Fps settings");
+        }
+        push_log("FPS rate = " + std::to_string(newFps));
+
+        nRet = is_ParameterSet(m_hCam, IS_PARAMETERSET_CMD_SAVE_EEPROM, NULL, NULL);
+        if (nRet != IS_SUCCESS)
+        {
+            throw std::runtime_error("Can't set parameters");
+        }
     }
 }
 
@@ -145,6 +169,22 @@ void uEyeCamera::push_log(std::string log)
         log = log.substr(0, log.size() - 1);
     }
     logs.push("camera: " + log + "<br>");
+}
+
+void uEyeCamera::capture(std::string path)
+{
+    std::cout << path << std::endl;
+    ReallocteBuffers();
+
+    INT nRet = is_CaptureVideo(m_hCam, IS_DONT_WAIT);
+    wait_picture.store(1);
+    while (wait_picture != 2)
+    {
+        _sleep(500);
+    }
+
+    cv::Mat image(cv::Size(m_nSizeX, m_nSizeY), CV_8UC1, picture, m_nSizeX);
+    imwrite(path, image);
 }
 
 std::string uEyeCamera::get_logs()
@@ -247,6 +287,26 @@ void uEyeCamera::SeqBuilt()
     m_nBufferStop = m_nBuffersInUse - 1;
 }
 
+void uEyeCamera::SeqKill()
+{
+    INT nRet = is_ClearSequence(m_hCam);
+    if (nRet != IS_SUCCESS)
+    {
+        throw std::runtime_error("Can't clear sequence");
+    }
+
+    int i;
+    for (i = (m_nBuffersInUse - 1); i >= 0; i--)
+    {
+        nRet = is_FreeImageMem(m_hCam, m_pcSeqImgMem[i], m_lSeqMemId[i]);
+        if (nRet != IS_SUCCESS)
+        {
+            throw std::runtime_error("Can't free image");
+        }
+    }
+    m_nBuffersInUse = i;
+}
+
 void uEyeCamera::EvInitAll()
 {
     EvEnumerate();
@@ -262,6 +322,29 @@ void uEyeCamera::EvInitAll()
         EvEnable(m_nEvUI[i], true);
         m_nEvCount[i] = 0;
     }
+
+    wait_picture.store(0);
+    event_thread = new std::thread([this]
+    {
+        for(;;)
+        {
+            DWORD lReturn = WaitForMultipleObjects(m_EvMax, m_hEv, FALSE, INFINITE);
+            int nEvIndex = lReturn - WAIT_OBJECT_0;
+            if (m_nEvUI[nEvIndex] == IS_SET_EVENT_FRAME)
+            {
+                INT nRet = is_GetActSeqBuf(m_hCam, &nNum, &pcMem, &pcMemLast);
+                if (nRet != IS_SUCCESS)
+                {
+                    throw std::runtime_error("Can't take picture");
+                }
+                if (wait_picture == 1)
+                {
+                    picture = pcMemLast;
+                    wait_picture.store(2);
+                }
+            }
+        }
+    });
 }
 
 void uEyeCamera::EvEnumerate()
@@ -313,4 +396,29 @@ void uEyeCamera::EvEnable(INT nEvent, bool bEnable)
     {
         is_DisableEvent(m_hCam, nEvent);
     }
+}
+
+void uEyeCamera::ReallocteBuffers()
+{
+    SeqKill();
+    SeqBuilt();
+}
+
+void uEyeCamera::InitSliderExposure()
+{
+    double dExposure = 0.0;
+    double dbrange[3];
+
+    INT nRet = is_Exposure(m_hCam, IS_EXPOSURE_CMD_SET_EXPOSURE, (void*)&dExposure, sizeof(dExposure));
+    if (nRet != IS_SUCCESS)
+    {
+        throw std::runtime_error("Can't set exposure");
+    }
+
+    nRet = is_Exposure(m_hCam, IS_EXPOSURE_CMD_GET_EXPOSURE_RANGE, (void*)&dbrange, sizeof(dbrange));
+    if (nRet != IS_SUCCESS)
+    {
+        throw std::runtime_error("Can't get exposure range");
+    }
+    push_log("Exposure range from " + std::to_string(dbrange[0]) + " to " + std::to_string(dbrange[1]));
 }

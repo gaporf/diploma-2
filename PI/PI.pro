@@ -51,3 +51,7 @@ win32-g++:CONFIG(release, debug|release): PRE_TARGETDEPS += $$PWD/./libuEye_api_
 else:win32-g++:CONFIG(debug, debug|release): PRE_TARGETDEPS += $$PWD/./libuEye_api_64d.a
 else:win32:!win32-g++:CONFIG(release, debug|release): PRE_TARGETDEPS += $$PWD/./uEye_api_64.lib
 else:win32:!win32-g++:CONFIG(debug, debug|release): PRE_TARGETDEPS += $$PWD/./uEye_api_64d.lib
+
+  LIBS += -LC:\OpenCV\OpenCV_build\install\x64\vc16\lib -lopencv_core455 -lopencv_imgproc455 -lopencv_highgui455 -lopencv_imgcodecs455 -lopencv_videoio455 -lopencv_video455 -lopencv_calib3d455 -lopencv_photo455 -lopencv_features2d455
+  INCLUDEPATH += C:\OpenCV\OpenCV_build\install\include
+  DEPENDPATH += C:\OpenCV\OpenCV_build\install\include
