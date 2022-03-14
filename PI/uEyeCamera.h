@@ -24,10 +24,13 @@ struct uEyeCamera
     void capture(std::string path, pi_controller *z, double z0, double zn, double zs);
 
     char *get_picture();
-private:
+
     void start_capture();
-    std::atomic_int current_captures;
+
     void stop_capture();
+
+private:
+    std::atomic_int current_captures;
 
     QLibrary lib;
 
@@ -66,7 +69,7 @@ private:
     char *pcMem, *pcMemLast;
 
     std::mutex m;
-    std::queue<char *> pictures;
+    std::queue<std::pair<char *, size_t>> pictures;
     std::atomic<int> wait_picture;
 
     std::atomic<int> wait_live_picture;

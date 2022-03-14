@@ -177,6 +177,7 @@ void uEyeCamera::push_log(std::string log)
 
 void uEyeCamera::capture(std::string path, pi_controller *z_controller, double z0, double zn, double zs)
 {
+    std::cout << path << std::endl;
     INT nRet;
     start_capture();
     std::atomic_int working;
@@ -202,12 +203,10 @@ void uEyeCamera::capture(std::string path, pi_controller *z_controller, double z
     });
     working.store(1);
     wait_picture.store(1);
-    std::atomic<int> cnt;
-    cnt.store(0);
-    std::thread th1([&cnt, &working, &path, this]
+    std::thread th1([&working, &path, this]
     {
         while (working == 1) {
-            char *picture;
+            std::pair<char *, size_t> picture;
             {
                 std::unique_lock<std::mutex> lg(m);
                 if (pictures.empty()) {
@@ -216,20 +215,12 @@ void uEyeCamera::capture(std::string path, pi_controller *z_controller, double z
                 picture = pictures.front();
                 pictures.pop();
             }
-            cv::Mat image(cv::Size(m_nSizeX, m_nSizeY), CV_8UC1, picture, m_nSizeX);
-            int cur_cnt;
-            while (true) {
-                cur_cnt = cnt;
-                if (cnt.compare_exchange_strong(cur_cnt, cur_cnt + 1))
-                {
-                    break;
-                }
-            }
-            imwrite(path + "/" + fit(std::to_string(cur_cnt)) + ".png", image);
+            cv::Mat image(cv::Size(m_nSizeX, m_nSizeY), CV_8UC1, picture.first, m_nSizeX);
+            imwrite(path + "/" + fit(std::to_string(picture.second)) + ".png", image);
         }
         wait_picture.store(0);
         while (!pictures.empty()) {
-            char *picture;
+            std::pair<char *, size_t> picture;
             {
                 std::unique_lock<std::mutex> lg(m);
                 if (pictures.empty()) {
@@ -238,22 +229,14 @@ void uEyeCamera::capture(std::string path, pi_controller *z_controller, double z
                 picture = pictures.front();
                 pictures.pop();
             }
-            cv::Mat image(cv::Size(m_nSizeX, m_nSizeY), CV_8UC1, picture, m_nSizeX);
-            int cur_cnt;
-            while (true) {
-                cur_cnt = cnt;
-                if (cnt.compare_exchange_strong(cur_cnt, cur_cnt + 1))
-                {
-                    break;
-                }
-            }
-            imwrite(path + "/" + fit(std::to_string(cur_cnt)) + ".png", image);
+            cv::Mat image(cv::Size(m_nSizeX, m_nSizeY), CV_8UC1, picture.first, m_nSizeX);
+            imwrite(path + "/" + fit(std::to_string(picture.second)) + ".png", image);
         }
     });
-    std::thread th2([&cnt, &working, &path, this]
+    std::thread th2([&working, &path, this]
     {
         while (working == 1) {
-            char *picture;
+            std::pair<char *, size_t> picture;
             {
                 std::unique_lock<std::mutex> lg(m);
                 if (pictures.empty()) {
@@ -262,20 +245,12 @@ void uEyeCamera::capture(std::string path, pi_controller *z_controller, double z
                 picture = pictures.front();
                 pictures.pop();
             }
-            cv::Mat image(cv::Size(m_nSizeX, m_nSizeY), CV_8UC1, picture, m_nSizeX);
-            int cur_cnt;
-            while (true) {
-                cur_cnt = cnt;
-                if (cnt.compare_exchange_strong(cur_cnt, cur_cnt + 1))
-                {
-                    break;
-                }
-            }
-            imwrite(path + "/" + fit(std::to_string(cur_cnt)) + ".png", image);
+            cv::Mat image(cv::Size(m_nSizeX, m_nSizeY), CV_8UC1, picture.first, m_nSizeX);
+            imwrite(path + "/" + fit(std::to_string(picture.second)) + ".png", image);
         }
         wait_picture.store(0);
         while (!pictures.empty()) {
-            char *picture;
+            std::pair<char *, size_t> picture;
             {
                 std::unique_lock<std::mutex> lg(m);
                 if (pictures.empty()) {
@@ -284,22 +259,14 @@ void uEyeCamera::capture(std::string path, pi_controller *z_controller, double z
                 picture = pictures.front();
                 pictures.pop();
             }
-            cv::Mat image(cv::Size(m_nSizeX, m_nSizeY), CV_8UC1, picture, m_nSizeX);
-            int cur_cnt;
-            while (true) {
-                cur_cnt = cnt;
-                if (cnt.compare_exchange_strong(cur_cnt, cur_cnt + 1))
-                {
-                    break;
-                }
-            }
-            imwrite(path + "/" + fit(std::to_string(cur_cnt)) + ".png", image);
+            cv::Mat image(cv::Size(m_nSizeX, m_nSizeY), CV_8UC1, picture.first, m_nSizeX);
+            imwrite(path + "/" + fit(std::to_string(picture.second)) + ".png", image);
         }
     });
-    std::thread th3([&cnt, &working, &path, this]
+    std::thread th3([&working, &path, this]
     {
         while (working == 1) {
-            char *picture;
+            std::pair<char *, size_t> picture;
             {
                 std::unique_lock<std::mutex> lg(m);
                 if (pictures.empty()) {
@@ -308,20 +275,12 @@ void uEyeCamera::capture(std::string path, pi_controller *z_controller, double z
                 picture = pictures.front();
                 pictures.pop();
             }
-            cv::Mat image(cv::Size(m_nSizeX, m_nSizeY), CV_8UC1, picture, m_nSizeX);
-            int cur_cnt;
-            while (true) {
-                cur_cnt = cnt;
-                if (cnt.compare_exchange_strong(cur_cnt, cur_cnt + 1))
-                {
-                    break;
-                }
-            }
-            imwrite(path + "/" + fit(std::to_string(cur_cnt)) + ".png", image);
+            cv::Mat image(cv::Size(m_nSizeX, m_nSizeY), CV_8UC1, picture.first, m_nSizeX);
+            imwrite(path + "/" + fit(std::to_string(picture.second)) + ".png", image);
         }
         wait_picture.store(0);
         while (!pictures.empty()) {
-            char *picture;
+            std::pair<char *, size_t> picture;
             {
                 std::unique_lock<std::mutex> lg(m);
                 if (pictures.empty()) {
@@ -330,22 +289,14 @@ void uEyeCamera::capture(std::string path, pi_controller *z_controller, double z
                 picture = pictures.front();
                 pictures.pop();
             }
-            cv::Mat image(cv::Size(m_nSizeX, m_nSizeY), CV_8UC1, picture, m_nSizeX);
-            int cur_cnt;
-            while (true) {
-                cur_cnt = cnt;
-                if (cnt.compare_exchange_strong(cur_cnt, cur_cnt + 1))
-                {
-                    break;
-                }
-            }
-            imwrite(path + "/" + fit(std::to_string(cur_cnt)) + ".png", image);
+            cv::Mat image(cv::Size(m_nSizeX, m_nSizeY), CV_8UC1, picture.first, m_nSizeX);
+            imwrite(path + "/" + fit(std::to_string(picture.second)) + ".png", image);
         }
     });
-    std::thread th4([&cnt, &working, &path, this]
+    std::thread th4([&working, &path, this]
     {
         while (working == 1) {
-            char *picture;
+            std::pair<char *, size_t> picture;
             {
                 std::unique_lock<std::mutex> lg(m);
                 if (pictures.empty()) {
@@ -354,20 +305,12 @@ void uEyeCamera::capture(std::string path, pi_controller *z_controller, double z
                 picture = pictures.front();
                 pictures.pop();
             }
-            cv::Mat image(cv::Size(m_nSizeX, m_nSizeY), CV_8UC1, picture, m_nSizeX);
-            int cur_cnt;
-            while (true) {
-                cur_cnt = cnt;
-                if (cnt.compare_exchange_strong(cur_cnt, cur_cnt + 1))
-                {
-                    break;
-                }
-            }
-            imwrite(path + "/" + fit(std::to_string(cur_cnt)) + ".png", image);
+            cv::Mat image(cv::Size(m_nSizeX, m_nSizeY), CV_8UC1, picture.first, m_nSizeX);
+            imwrite(path + "/" + fit(std::to_string(picture.second)) + ".png", image);
         }
         wait_picture.store(0);
         while (!pictures.empty()) {
-            char *picture;
+            std::pair<char *, size_t> picture;
             {
                 std::unique_lock<std::mutex> lg(m);
                 if (pictures.empty()) {
@@ -376,22 +319,14 @@ void uEyeCamera::capture(std::string path, pi_controller *z_controller, double z
                 picture = pictures.front();
                 pictures.pop();
             }
-            cv::Mat image(cv::Size(m_nSizeX, m_nSizeY), CV_8UC1, picture, m_nSizeX);
-            int cur_cnt;
-            while (true) {
-                cur_cnt = cnt;
-                if (cnt.compare_exchange_strong(cur_cnt, cur_cnt + 1))
-                {
-                    break;
-                }
-            }
-            imwrite(path + "/" + fit(std::to_string(cur_cnt)) + ".png", image);
+            cv::Mat image(cv::Size(m_nSizeX, m_nSizeY), CV_8UC1, picture.first, m_nSizeX);
+            imwrite(path + "/" + fit(std::to_string(picture.second)) + ".png", image);
         }
     });
-    std::thread th5([&cnt, &working, &path, this]
+    std::thread th5([&working, &path, this]
     {
         while (working == 1) {
-            char *picture;
+            std::pair<char *, size_t> picture;
             {
                 std::unique_lock<std::mutex> lg(m);
                 if (pictures.empty()) {
@@ -400,20 +335,12 @@ void uEyeCamera::capture(std::string path, pi_controller *z_controller, double z
                 picture = pictures.front();
                 pictures.pop();
             }
-            cv::Mat image(cv::Size(m_nSizeX, m_nSizeY), CV_8UC1, picture, m_nSizeX);
-            int cur_cnt;
-            while (true) {
-                cur_cnt = cnt;
-                if (cnt.compare_exchange_strong(cur_cnt, cur_cnt + 1))
-                {
-                    break;
-                }
-            }
-            imwrite(path + "/" + fit(std::to_string(cur_cnt)) + ".png", image);
+            cv::Mat image(cv::Size(m_nSizeX, m_nSizeY), CV_8UC1, picture.first, m_nSizeX);
+            imwrite(path + "/" + fit(std::to_string(picture.second)) + ".png", image);
         }
         wait_picture.store(0);
         while (!pictures.empty()) {
-            char *picture;
+            std::pair<char *, size_t> picture;
             {
                 std::unique_lock<std::mutex> lg(m);
                 if (pictures.empty()) {
@@ -422,16 +349,8 @@ void uEyeCamera::capture(std::string path, pi_controller *z_controller, double z
                 picture = pictures.front();
                 pictures.pop();
             }
-            cv::Mat image(cv::Size(m_nSizeX, m_nSizeY), CV_8UC1, picture, m_nSizeX);
-            int cur_cnt;
-            while (true) {
-                cur_cnt = cnt;
-                if (cnt.compare_exchange_strong(cur_cnt, cur_cnt + 1))
-                {
-                    break;
-                }
-            }
-            imwrite(path + "/" + fit(std::to_string(cur_cnt)) + ".png", image);
+            cv::Mat image(cv::Size(m_nSizeX, m_nSizeY), CV_8UC1, picture.first, m_nSizeX);
+            imwrite(path + "/" + fit(std::to_string(picture.second)) + ".png", image);
         }
     });
     th1.join();
@@ -471,12 +390,12 @@ void uEyeCamera::stop_capture()
     while (true)
     {
         cur = current_captures;
-        if (current_captures.compare_exchange_strong(cur, cur + 1))
+        if (current_captures.compare_exchange_strong(cur, cur - 1))
         {
             break;
         }
     }
-    if (cur == 0)
+    if (cur == 1)
     {
         is_StopLiveVideo(m_hCam, IS_FORCE_VIDEO_STOP);
     }
@@ -488,7 +407,6 @@ void uEyeCamera::stop_capture()
 
 char *uEyeCamera::get_picture()
 {
-    start_capture();
     wait_live_picture.store(1);
     while (true)
     {
@@ -500,7 +418,6 @@ char *uEyeCamera::get_picture()
         wait_live_picture.store(0);
         break;
     }
-    stop_capture();
     return live_picture;
 }
 
@@ -650,6 +567,7 @@ void uEyeCamera::EvInitAll()
     wait_picture.store(0);
     event_thread = new std::thread([this]
     {
+        size_t cnt = 0;
         for(;;)
         {
             DWORD lReturn = WaitForMultipleObjects(m_EvMax, m_hEv, FALSE, INFINITE);
@@ -664,10 +582,13 @@ void uEyeCamera::EvInitAll()
                 if (wait_picture == 1)
                 {
                     std::unique_lock<std::mutex> lg(m);
-                    pictures.push(pcMemLast);
+                    pictures.push({pcMemLast, cnt++});
                 }
-                if (wait_live_picture == 1)
+                else
                 {
+                    cnt = 0;
+                }
+                if (wait_live_picture  == 1) {
                     live_picture = pcMemLast;
                     wait_live_picture.store(2);
                 }

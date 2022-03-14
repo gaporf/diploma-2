@@ -51,6 +51,10 @@ private:
 
     void add_disabled(int mask);
 
+    void disable_all();
+
+    void enable_all();
+
     std::mutex m;
 
     std::thread move_to_start_position_thread;
@@ -60,6 +64,30 @@ private:
     std::thread scanning_thread;
     std::condition_variable scanning_var;
     bool scanning_clicked = false;
+
+    std::thread x_moving_left_thread;
+    std::condition_variable x_moving_left_var;
+    bool x_moving_left_clicked = false;
+
+    std::thread x_moving_right_thread;
+    std::condition_variable x_moving_right_var;
+    bool x_moving_right_clicked = false;
+
+    std::thread y_moving_left_thread;
+    std::condition_variable y_moving_left_var;
+    bool y_moving_left_clicked = false;
+
+    std::thread y_moving_right_thread;
+    std::condition_variable y_moving_right_var;
+    bool y_moving_right_clicked = false;
+
+    std::thread z_moving_down_thread;
+    std::condition_variable z_moving_down_var;
+    bool z_moving_down_clicked = false;
+
+    std::thread z_moving_up_thread;
+    std::condition_variable z_moving_up_var;
+    bool z_moving_up_clicked = false;
 
     std::atomic_bool is_cancelled;
 

@@ -3,6 +3,7 @@
 
 #include <QDialog>
 #include <QTimer>
+#include <QImage>
 
 #include "uEyeCamera.h"
 
@@ -22,6 +23,7 @@ private:
     Ui::FindCamera *ui;
     uEyeCamera *camera = nullptr;
     QTimer *timer = new QTimer(this);
+    bool is_started = false;
 };
 
 #endif // FINDCAMERA_H

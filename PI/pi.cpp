@@ -160,6 +160,108 @@ PI::PI(QWidget *parent)
                 lg.unlock();
             }
         })
+    , x_moving_left_thread([this]
+        {
+            for(;;)
+            {
+                std::unique_lock<std::mutex> lg(m);
+                x_moving_left_var.wait(lg, [this]
+                {
+                    return x_moving_left_clicked;
+                });
+                double xs = ui->xsLineEdit->text().toDouble();
+                x_controller->set_velocity(0.5);
+                x_controller->move(max(x_controller->get_current_position() - xs, x_controller->get_min_position()));
+                x_moving_left_clicked = false;
+                enable_all();
+                lg.unlock();
+            }
+        })
+    , x_moving_right_thread([this]
+        {
+            for(;;)
+            {
+                std::unique_lock<std::mutex> lg(m);
+                x_moving_right_var.wait(lg, [this]
+                {
+                    return x_moving_right_clicked;
+                });
+                double xs = ui->xsLineEdit->text().toDouble();
+                x_controller->set_velocity(0.5);
+                x_controller->move(min(x_controller->get_current_position() + xs, x_controller->get_max_position()));
+                x_moving_right_clicked = false;
+                enable_all();
+                lg.unlock();
+            }
+        })
+    , y_moving_left_thread([this]
+        {
+            for(;;)
+            {
+                std::unique_lock<std::mutex> lg(m);
+                y_moving_left_var.wait(lg, [this]
+                {
+                    return y_moving_left_clicked;
+                });
+                double ys = ui->ysLineEdit->text().toDouble();
+                y_controller->set_velocity(0.5);
+                y_controller->move(max(y_controller->get_current_position() - ys, y_controller->get_min_position()));
+                y_moving_left_clicked = false;
+                enable_all();
+                lg.unlock();
+            }
+        })
+    , y_moving_right_thread([this]
+        {
+            for(;;)
+            {
+                std::unique_lock<std::mutex> lg(m);
+                y_moving_right_var.wait(lg, [this]
+                {
+                    return y_moving_right_clicked;
+                });
+                double ys = ui->ysLineEdit->text().toDouble();
+                y_controller->set_velocity(0.5);
+                y_controller->move(min(y_controller->get_current_position() + ys, y_controller->get_max_position()));
+                y_moving_right_clicked = false;
+                enable_all();
+                lg.unlock();
+            }
+        })
+    , z_moving_down_thread([this]
+        {
+            for(;;)
+            {
+                std::unique_lock<std::mutex> lg(m);
+                z_moving_down_var.wait(lg, [this]
+                {
+                    return z_moving_down_clicked;
+                });
+                double zs = ui->zsLineEdit->text().toDouble();
+                z_controller->set_velocity(0.5);
+                z_controller->move(max(z_controller->get_current_position() - zs, z_controller->get_min_position()));
+                z_moving_down_clicked = false;
+                enable_all();
+                lg.unlock();
+            }
+        })
+    , z_moving_up_thread([this]
+        {
+            for(;;)
+            {
+                std::unique_lock<std::mutex> lg(m);
+                z_moving_up_var.wait(lg, [this]
+                {
+                    return z_moving_up_clicked;
+                });
+                double zs = ui->zsLineEdit->text().toDouble();
+                z_controller->set_velocity(0.5);
+                z_controller->move(min(z_controller->get_current_position() + zs, z_controller->get_max_position()));
+                z_moving_up_clicked = false;
+                enable_all();
+                lg.unlock();
+            }
+        })
 {
     ui->setupUi(this);
 
@@ -377,47 +479,63 @@ PI::PI(QWidget *parent)
         add_enabled(YN_MASK);
     });
 
+    connect(ui->setCurrentPositionZ0Button, &QPushButton::clicked, this, [this]
+    {
+        ui->z0LineEdit->setText(ui->zCur->text());
+        ui->z0LineEdit->setStyleSheet("color: green");
+        ui->z0Label->setText("");
+        add_enabled(Z0_MASK);
+    });
+
+    connect(ui->setCurrentPositionZNButton, &QPushButton::clicked, this, [this]
+    {
+        ui->znLineEdit->setText(ui->zCur->text());
+        ui->znLineEdit->setStyleSheet("color: green");
+        ui->znLabel->setText("");
+        add_enabled(ZN_MASK);
+    });
+
 
     connect(ui->xMoveLeftButton, &QPushButton::clicked, this, [this]
     {
-        double xs = ui->xsLineEdit->text().toDouble();
-        x_controller->set_velocity(0.5);
-        x_controller->move(max(x_controller->get_current_position() - xs, x_controller->get_min_position()));
+        disable_all();
+        x_moving_left_clicked = true;
+        x_moving_left_var.notify_one();
     });
 
     connect(ui->xMoveRightButton, &QPushButton::clicked, this, [this]
     {
-        double xs = ui->xsLineEdit->text().toDouble();
-        x_controller->set_velocity(0.5);
-        x_controller->move(min(x_controller->get_current_position() + xs, x_controller->get_max_position()));
+        disable_all();
+        x_moving_right_clicked = true;
+        x_moving_right_var.notify_one();
     });
 
     connect(ui->yMoveLeftButton, &QPushButton::clicked, this, [this]
     {
-        double ys = ui->ysLineEdit->text().toDouble();
-        y_controller->set_velocity(0.5);
-        y_controller->move(max(y_controller->get_current_position() - ys, y_controller->get_min_position()));
+        disable_all();
+        y_moving_left_clicked = true;
+        y_moving_left_var.notify_one();
     });
 
     connect(ui->yMoveRightButton, &QPushButton::clicked, this, [this]
     {
-        double ys = ui->ysLineEdit->text().toDouble();
-        y_controller->set_velocity(0.5);
-        y_controller->move(min(y_controller->get_current_position() + ys, y_controller->get_max_position()));
+        disable_all();
+        y_moving_right_clicked = true;
+        y_moving_right_var.notify_one();
     });
 
     connect(ui->zMoveDownButton, &QPushButton::clicked, this, [this]
     {
-        double zs = ui->zsLineEdit->text().toDouble();
-        z_controller->set_velocity(0.5);
-        z_controller->move(max(z_controller->get_current_position() - zs, z_controller->get_min_position()));
+        disable_all();
+        z_moving_down_clicked = true;
+        z_moving_down_var.notify_one();
     });
 
     connect(ui->zMoveUpButton, &QPushButton::clicked, this, [this]
     {
-        double zs = ui->zsLineEdit->text().toDouble();
-        z_controller->set_velocity(0.5);
-        z_controller->move(min(z_controller->get_current_position() + zs, z_controller->get_max_position()));
+        disable_all();
+        z_moving_up_clicked = true;
+        z_moving_up_var.notify_one();
     });
 
     connect(timer, &QTimer::timeout, this, [this]
@@ -509,7 +627,8 @@ PI::PI(QWidget *parent)
             ui->zsLineEdit->setEnabled(true);
             ui->setCurrentPosition0Button->setEnabled(true);
             ui->setCurrentPositionNButton->setEnabled(true);
-
+            ui->setCurrentPositionZ0Button->setEnabled(true);
+            ui->setCurrentPositionZNButton->setEnabled(true);
             ui->findAxesButton->setEnabled(false);
         }
         catch (std::exception &)
@@ -544,6 +663,20 @@ PI::PI(QWidget *parent)
 
     connect(ui->startScanningButton, &QPushButton::clicked, this, [this]
     {
+        double x0_size = ui->x0LineEdit->text().toDouble();
+        double y0_size = ui->y0LineEdit->text().toDouble();
+        double xN_size = ui->xnLineEdit->text().toDouble();
+        double yN_size = ui->ynLineEdit->text().toDouble();
+        if (x0_size > xN_size)
+        {
+            ui->x0LineEdit->setText(QString::fromStdString(std::to_string(xN_size)));
+            ui->xnLineEdit->setText(QString::fromStdString(std::to_string(x0_size)));
+        }
+        if (y0_size > yN_size)
+        {
+            ui->y0LineEdit->setText(QString::fromStdString(std::to_string(yN_size)));
+            ui->ynLineEdit->setText(QString::fromStdString(std::to_string(y0_size)));
+        }
         ui->moveToStartPositionButton->setEnabled(false);
         ui->startScanningButton->setEnabled(false);
         scanning_clicked = true;
@@ -626,5 +759,34 @@ void PI::add_disabled(int mask)
     {
         ui->zMoveUpButton->setEnabled(false);
         ui->zMoveDownButton->setEnabled(false);
+    }
+}
+
+void PI::disable_all()
+{
+    ui->xMoveLeftButton->setEnabled(false);
+    ui->xMoveRightButton->setEnabled(false);
+    ui->yMoveLeftButton->setEnabled(false);
+    ui->yMoveRightButton->setEnabled(false);
+    ui->zMoveDownButton->setEnabled(false);
+    ui->zMoveUpButton->setEnabled(false);
+}
+
+void PI::enable_all()
+{
+    if ((button_mask & XS_MASK) == XS_MASK)
+    {
+        ui->xMoveLeftButton->setEnabled(true);
+        ui->xMoveRightButton->setEnabled(true);
+    }
+    if ((button_mask & YS_MASK) == YS_MASK)
+    {
+        ui->yMoveLeftButton->setEnabled(true);
+        ui->yMoveRightButton->setEnabled(true);
+    }
+    if ((button_mask & ZS_MASK) == ZS_MASK)
+    {
+        ui->zMoveDownButton->setEnabled(true);
+        ui->zMoveUpButton->setEnabled(true);
     }
 }
