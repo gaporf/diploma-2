@@ -1,9 +1,13 @@
 #include <iostream>
+#include <fstream>
+#include <mutex>
 
 #include "uEyeCamera.h"
 
 uEyeCamera::uEyeCamera() : m_hCam(static_cast<HIDS>(0)), m_nBuffersNew(850), lib("opencv_world455.dll")
 {
+    wait_live_picture.store(0);
+    wait_picture.store(0);
 
     INT nRet = is_InitCamera(&m_hCam, nullptr);
     if (nRet != IS_SUCCESS)
@@ -171,36 +175,340 @@ void uEyeCamera::push_log(std::string log)
     logs.push("camera: " + log + "<br>");
 }
 
-void uEyeCamera::capture(std::string path, pi_controller *z_controller)
+void uEyeCamera::capture(std::string path, pi_controller *z_controller, double z0, double zn, double zs)
 {
-    std::cout << path << std::endl;
-    ReallocteBuffers();
-
-    if (z_controller->get_current_position() != z_controller->get_max_position() && z_controller->get_current_position() != z_controller->get_min_position())
-    {
-        z_controller->move(z_controller->get_min_position());
+    INT nRet;
+    start_capture();
+    std::atomic_int working;
+    while (!pictures.empty()) {
+        pictures.pop();
     }
-    INT nRet = is_CaptureVideo(m_hCam, IS_DONT_WAIT);
-    std::thread th([z_controller]
+    z_controller->set_velocity(zs);
+    std::ofstream out_file(path + "/info.txt");
+    std::thread th([z_controller, z0, zn, zs, &working, &out_file]
     {
-        if (z_controller->get_current_position() == z_controller->get_min_position())
+        z_controller->set_velocity(zs);
+        if (std::abs(z_controller->get_current_position() - z0) < std::abs(z_controller->get_current_position() - zn))
         {
-            z_controller->move(z_controller->get_max_position());
+            out_file << "normal" << std::endl;
+            z_controller->move(zn);
         }
         else
         {
-            z_controller->move(z_controller->get_min_position());
+            out_file << "reverse" << std::endl;
+            z_controller->move(z0);
+        }
+        working.store(0);
+    });
+    working.store(1);
+    wait_picture.store(1);
+    std::atomic<int> cnt;
+    cnt.store(0);
+    std::thread th1([&cnt, &working, &path, this]
+    {
+        while (working == 1) {
+            char *picture;
+            {
+                std::unique_lock<std::mutex> lg(m);
+                if (pictures.empty()) {
+                    continue;
+                }
+                picture = pictures.front();
+                pictures.pop();
+            }
+            cv::Mat image(cv::Size(m_nSizeX, m_nSizeY), CV_8UC1, picture, m_nSizeX);
+            int cur_cnt;
+            while (true) {
+                cur_cnt = cnt;
+                if (cnt.compare_exchange_strong(cur_cnt, cur_cnt + 1))
+                {
+                    break;
+                }
+            }
+            imwrite(path + "/" + fit(std::to_string(cur_cnt)) + ".png", image);
+        }
+        wait_picture.store(0);
+        while (!pictures.empty()) {
+            char *picture;
+            {
+                std::unique_lock<std::mutex> lg(m);
+                if (pictures.empty()) {
+                    continue;
+                }
+                picture = pictures.front();
+                pictures.pop();
+            }
+            cv::Mat image(cv::Size(m_nSizeX, m_nSizeY), CV_8UC1, picture, m_nSizeX);
+            int cur_cnt;
+            while (true) {
+                cur_cnt = cnt;
+                if (cnt.compare_exchange_strong(cur_cnt, cur_cnt + 1))
+                {
+                    break;
+                }
+            }
+            imwrite(path + "/" + fit(std::to_string(cur_cnt)) + ".png", image);
         }
     });
-    th.join();
-    wait_picture.store(1);
-    while (wait_picture != 2)
+    std::thread th2([&cnt, &working, &path, this]
     {
-        _sleep(500);
+        while (working == 1) {
+            char *picture;
+            {
+                std::unique_lock<std::mutex> lg(m);
+                if (pictures.empty()) {
+                    continue;
+                }
+                picture = pictures.front();
+                pictures.pop();
+            }
+            cv::Mat image(cv::Size(m_nSizeX, m_nSizeY), CV_8UC1, picture, m_nSizeX);
+            int cur_cnt;
+            while (true) {
+                cur_cnt = cnt;
+                if (cnt.compare_exchange_strong(cur_cnt, cur_cnt + 1))
+                {
+                    break;
+                }
+            }
+            imwrite(path + "/" + fit(std::to_string(cur_cnt)) + ".png", image);
+        }
+        wait_picture.store(0);
+        while (!pictures.empty()) {
+            char *picture;
+            {
+                std::unique_lock<std::mutex> lg(m);
+                if (pictures.empty()) {
+                    continue;
+                }
+                picture = pictures.front();
+                pictures.pop();
+            }
+            cv::Mat image(cv::Size(m_nSizeX, m_nSizeY), CV_8UC1, picture, m_nSizeX);
+            int cur_cnt;
+            while (true) {
+                cur_cnt = cnt;
+                if (cnt.compare_exchange_strong(cur_cnt, cur_cnt + 1))
+                {
+                    break;
+                }
+            }
+            imwrite(path + "/" + fit(std::to_string(cur_cnt)) + ".png", image);
+        }
+    });
+    std::thread th3([&cnt, &working, &path, this]
+    {
+        while (working == 1) {
+            char *picture;
+            {
+                std::unique_lock<std::mutex> lg(m);
+                if (pictures.empty()) {
+                    continue;
+                }
+                picture = pictures.front();
+                pictures.pop();
+            }
+            cv::Mat image(cv::Size(m_nSizeX, m_nSizeY), CV_8UC1, picture, m_nSizeX);
+            int cur_cnt;
+            while (true) {
+                cur_cnt = cnt;
+                if (cnt.compare_exchange_strong(cur_cnt, cur_cnt + 1))
+                {
+                    break;
+                }
+            }
+            imwrite(path + "/" + fit(std::to_string(cur_cnt)) + ".png", image);
+        }
+        wait_picture.store(0);
+        while (!pictures.empty()) {
+            char *picture;
+            {
+                std::unique_lock<std::mutex> lg(m);
+                if (pictures.empty()) {
+                    continue;
+                }
+                picture = pictures.front();
+                pictures.pop();
+            }
+            cv::Mat image(cv::Size(m_nSizeX, m_nSizeY), CV_8UC1, picture, m_nSizeX);
+            int cur_cnt;
+            while (true) {
+                cur_cnt = cnt;
+                if (cnt.compare_exchange_strong(cur_cnt, cur_cnt + 1))
+                {
+                    break;
+                }
+            }
+            imwrite(path + "/" + fit(std::to_string(cur_cnt)) + ".png", image);
+        }
+    });
+    std::thread th4([&cnt, &working, &path, this]
+    {
+        while (working == 1) {
+            char *picture;
+            {
+                std::unique_lock<std::mutex> lg(m);
+                if (pictures.empty()) {
+                    continue;
+                }
+                picture = pictures.front();
+                pictures.pop();
+            }
+            cv::Mat image(cv::Size(m_nSizeX, m_nSizeY), CV_8UC1, picture, m_nSizeX);
+            int cur_cnt;
+            while (true) {
+                cur_cnt = cnt;
+                if (cnt.compare_exchange_strong(cur_cnt, cur_cnt + 1))
+                {
+                    break;
+                }
+            }
+            imwrite(path + "/" + fit(std::to_string(cur_cnt)) + ".png", image);
+        }
+        wait_picture.store(0);
+        while (!pictures.empty()) {
+            char *picture;
+            {
+                std::unique_lock<std::mutex> lg(m);
+                if (pictures.empty()) {
+                    continue;
+                }
+                picture = pictures.front();
+                pictures.pop();
+            }
+            cv::Mat image(cv::Size(m_nSizeX, m_nSizeY), CV_8UC1, picture, m_nSizeX);
+            int cur_cnt;
+            while (true) {
+                cur_cnt = cnt;
+                if (cnt.compare_exchange_strong(cur_cnt, cur_cnt + 1))
+                {
+                    break;
+                }
+            }
+            imwrite(path + "/" + fit(std::to_string(cur_cnt)) + ".png", image);
+        }
+    });
+    std::thread th5([&cnt, &working, &path, this]
+    {
+        while (working == 1) {
+            char *picture;
+            {
+                std::unique_lock<std::mutex> lg(m);
+                if (pictures.empty()) {
+                    continue;
+                }
+                picture = pictures.front();
+                pictures.pop();
+            }
+            cv::Mat image(cv::Size(m_nSizeX, m_nSizeY), CV_8UC1, picture, m_nSizeX);
+            int cur_cnt;
+            while (true) {
+                cur_cnt = cnt;
+                if (cnt.compare_exchange_strong(cur_cnt, cur_cnt + 1))
+                {
+                    break;
+                }
+            }
+            imwrite(path + "/" + fit(std::to_string(cur_cnt)) + ".png", image);
+        }
+        wait_picture.store(0);
+        while (!pictures.empty()) {
+            char *picture;
+            {
+                std::unique_lock<std::mutex> lg(m);
+                if (pictures.empty()) {
+                    continue;
+                }
+                picture = pictures.front();
+                pictures.pop();
+            }
+            cv::Mat image(cv::Size(m_nSizeX, m_nSizeY), CV_8UC1, picture, m_nSizeX);
+            int cur_cnt;
+            while (true) {
+                cur_cnt = cnt;
+                if (cnt.compare_exchange_strong(cur_cnt, cur_cnt + 1))
+                {
+                    break;
+                }
+            }
+            imwrite(path + "/" + fit(std::to_string(cur_cnt)) + ".png", image);
+        }
+    });
+    th1.join();
+    th2.join();
+    th3.join();
+    th4.join();
+    th5.join();
+    stop_capture();
+    th.join();
+}
+
+void uEyeCamera::start_capture()
+{
+    ReallocteBuffers();
+    int cur;
+    while (true)
+    {
+        cur = current_captures;
+        if (current_captures.compare_exchange_strong(cur, cur + 1))
+        {
+            break;
+        }
     }
-    cv::Mat image(cv::Size(m_nSizeX, m_nSizeY), CV_8UC1, picture, m_nSizeX);
-    imwrite(path, image);
-    nRet = is_StopLiveVideo(m_hCam, IS_FORCE_VIDEO_STOP);
+    if (cur == 0)
+    {
+        is_CaptureVideo(m_hCam, IS_DONT_WAIT);
+    }
+    else
+    {
+        _sleep(1000);
+    }
+}
+
+void uEyeCamera::stop_capture()
+{
+    int cur;
+    while (true)
+    {
+        cur = current_captures;
+        if (current_captures.compare_exchange_strong(cur, cur + 1))
+        {
+            break;
+        }
+    }
+    if (cur == 0)
+    {
+        is_StopLiveVideo(m_hCam, IS_FORCE_VIDEO_STOP);
+    }
+    else
+    {
+        _sleep(1000);
+    }
+}
+
+char *uEyeCamera::get_picture()
+{
+    start_capture();
+    wait_live_picture.store(1);
+    while (true)
+    {
+        if (wait_live_picture != 2)
+        {
+            _sleep(50);
+            continue;
+        }
+        wait_live_picture.store(0);
+        break;
+    }
+    stop_capture();
+    return live_picture;
+}
+
+std::string uEyeCamera::fit(std::string number) {
+    while (number.length() < 5) {
+        number = "0" + number;
+    }
+    return number;
 }
 
 std::string uEyeCamera::get_logs()
@@ -355,8 +663,13 @@ void uEyeCamera::EvInitAll()
                 }
                 if (wait_picture == 1)
                 {
-                    picture = pcMemLast;
-                    wait_picture.store(2);
+                    std::unique_lock<std::mutex> lg(m);
+                    pictures.push(pcMemLast);
+                }
+                if (wait_live_picture == 1)
+                {
+                    live_picture = pcMemLast;
+                    wait_live_picture.store(2);
                 }
             }
         }

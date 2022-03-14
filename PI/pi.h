@@ -17,6 +17,18 @@ QT_BEGIN_NAMESPACE
 namespace Ui { class PI; }
 QT_END_NAMESPACE
 
+#define X0_MASK 0x001
+#define Y0_MASK 0x002
+#define XN_MASK 0x004
+#define YN_MASK 0x008
+#define XS_MASK 0x010
+#define YS_MASK 0x020
+#define Z0_MASK 0x040
+#define ZN_MASK 0x080
+#define ZS_MASK 0x100
+#define CM_MASK 0x200
+#define BR_MASK 0x400
+
 class PI : public QMainWindow
 {
     Q_OBJECT
@@ -35,6 +47,10 @@ private:
 
     int button_mask = 0;
 
+    void add_enabled(int mask);
+
+    void add_disabled(int mask);
+
     std::mutex m;
 
     std::thread move_to_start_position_thread;
@@ -47,6 +63,6 @@ private:
 
     std::atomic_bool is_cancelled;
 
-    void capture_and_save(double x_pos, double y_pos);
+    void capture_and_save(size_t x_pos, size_t y_pos);
 };
 #endif // PI_H

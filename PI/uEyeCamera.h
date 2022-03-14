@@ -21,8 +21,14 @@ struct uEyeCamera
 
     void load_config();
 
-    void capture(std::string path, pi_controller *z);
+    void capture(std::string path, pi_controller *z, double z0, double zn, double zs);
+
+    char *get_picture();
 private:
+    void start_capture();
+    std::atomic_int current_captures;
+    void stop_capture();
+
     QLibrary lib;
 
 #define MIN_SEQ_BUFFERS 3
@@ -58,12 +64,19 @@ private:
     std::thread *event_thread;
     INT nNum;
     char *pcMem, *pcMemLast;
-    char *picture;
+
+    std::mutex m;
+    std::queue<char *> pictures;
     std::atomic<int> wait_picture;
+
+    std::atomic<int> wait_live_picture;
+    char *live_picture;
 
     std::queue<std::string> logs;
 
     void push_log(std::string log);
+
+    std::string fit(std::string number);
 
     void SeqBuilt();
 

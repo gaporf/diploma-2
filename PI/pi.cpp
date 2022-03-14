@@ -4,6 +4,7 @@
 
 #include <iostream>
 #include <thread>
+#include <set>
 
 #include <QFileDialog>
 
@@ -33,7 +34,7 @@ PI::PI(QWidget *parent)
                 th2.join();
                 move_to_start_position_clicked = false;
                 ui->moveToStartPositionButton->setEnabled(true);
-                ui->startScanningButton->setEnabled(true);
+                add_enabled(0);
                 lg.unlock();
             }
         })
@@ -47,106 +48,109 @@ PI::PI(QWidget *parent)
                     return scanning_clicked;
                 });
                 is_cancelled.store(false);
+
                 double x0_size = ui->x0LineEdit->text().toDouble();
                 double y0_size = ui->y0LineEdit->text().toDouble();
                 double xN_size = ui->xnLineEdit->text().toDouble();
                 double yN_size = ui->ynLineEdit->text().toDouble();
                 double xs_size = ui->xsLineEdit->text().toDouble();
                 double ys_size = ui->ysLineEdit->text().toDouble();
-                double xo_size = ui->xoLineEdit->text().toDouble();
-                double yo_size = ui->yoLineEdit->text().toDouble();
-                if (xo_size >= xs_size)
+                double z0_size = ui->z0LineEdit->text().toDouble();
+                double cur_x = x0_size + (x0_size < xN_size ? 1 : -1) * xs_size / 2;
+                double cur_y = y0_size + (y0_size < yN_size ? 1 : -1) * ys_size / 2;
+                std::thread th1([this, cur_x]
                 {
-                    ui->xoLabel->setStyleSheet("color: red");
-                    std::string info = "Overlapped size should be less than frame size";
-                    ui->xoLabel->setText(QString::fromStdString(info));
-                }
-                else if (yo_size >= ys_size)
+                    (*x_controller).set_velocity(5);
+                    (*x_controller).move(cur_x);
+                });
+                std::thread th2([this, cur_y]
                 {
-                    ui->yoLabel->setStyleSheet("color: red");
-                    std::string info = "Overlapped size should be less than frame size";
-                    ui->yoLabel->setText(QString::fromStdString(info));
-                }
-                else if (std::abs(x0_size - xN_size) < xs_size)
+                    (*y_controller).set_velocity(5);
+                    (*y_controller).move(cur_y);
+                });
+                std::thread th3([this, z0_size]
                 {
-                    ui->xsLabel->setStyleSheet("color: red");
-                    std::string info = "Frame size should be not greater than scanning size";
-                    ui->xsLabel->setText(QString::fromStdString(info));
-                }
-                else if (std::abs(y0_size - yN_size) < ys_size)
-                {
-                    ui->ysLabel->setStyleSheet("color: red");
-                    std::string info = "Frame size should be not greater than scanning size";
-                    ui->ysLabel->setText(QString::fromStdString(info));
-                }
-                else
-                {
-                    std::thread th1([this, x0_size, xN_size, xs_size]
-                    {
-                        (*x_controller).set_velocity(15);
-                        (*x_controller).move(x0_size + (x0_size < xN_size ? 1 : -1) * xs_size / 2);
-                    });
-                    std::thread th2([this, y0_size, yN_size, ys_size]
-                    {
-                        (*y_controller).set_velocity(15);
-                        (*y_controller).move(y0_size + (y0_size < yN_size ? 1 : -1) * ys_size / 2);
-                    });
-                    th1.join();
-                    th2.join();
-                    double cur_x = (*x_controller).get_current_position();
-                    double cur_y = (*y_controller).get_current_position();
-                    char direction = (x0_size < xN_size ? 'F' : 'B');
-                    ui->cancelScanningButton->setEnabled(true);
-                    while ((y0_size < yN_size && cur_y - (ys_size - yo_size) / 2 <= yN_size) || (y0_size > yN_size && cur_y + (ys_size - yo_size) / 2 >= yN_size))
-                    {
-                        if (direction == 'F')
-                        {
-                            while (cur_x - (xs_size - xo_size) / 2 <= max(x0_size, xN_size))
-                            {
-                                if (is_cancelled.load())
-                                {
-                                    break;
-                                }
-                                capture_and_save(x_controller->get_current_position(), y_controller->get_current_position());
-                                cur_x = cur_x + xs_size - xo_size;
-                                if (cur_x - (xs_size - xo_size) / 2 <= max(x0_size, xN_size))
-                                {
-                                    (*x_controller).set_velocity(10);
-                                    (*x_controller).move(min(cur_x, x_controller->get_max_position()));
-                                }
-                            }
-                            direction = 'B';
-                        }
-                        else if (direction == 'B')
-                        {
-                            while (cur_x + (xs_size - xo_size) / 2 >= min(x0_size, xN_size))
-                            {
+                    (*z_controller).set_velocity(0.5);
+                    (*z_controller).move(z0_size);
+                });
+                th1.join();
+                th2.join();
+                th3.join();
 
-                                if (is_cancelled.load())
-                                {
-                                    break;
-                                }
-                                capture_and_save(x_controller->get_current_position(), y_controller->get_current_position());
-                                cur_x = cur_x - xs_size + xo_size;
-                                if (cur_x + (xs_size - xo_size) / 2 >= min(x0_size, xN_size))
-                                {
-                                    (*x_controller).set_velocity(10);
-                                    (*x_controller).move(max(cur_x, x_controller->get_min_position()));
-                                }
+                size_t x = 1;
+                size_t y = 1;
+                std::set<std::pair<double, double>> is_visited;
+                char direction = (x0_size < xN_size ? 'F' : 'B');
+                ui->cancelScanningButton->setEnabled(true);
+                while (true)
+                {
+                    if (direction == 'F')
+                    {
+                        while (true)
+                        {
+                            if (is_cancelled.load())
+                            {
+                                break;
                             }
-                            direction = 'F';
+                            if (is_visited.find({cur_x, cur_y}) == is_visited.end())
+                            {
+                                capture_and_save(x, y);
+                                is_visited.insert({cur_x, cur_y});
+                            }
+                            if (cur_x + xs_size / 2 < xN_size)
+                            {
+                                x++;
+                                cur_x += xs_size;
+                                (*x_controller).set_velocity(0.5);
+                                (*x_controller).move(min(cur_x, x_controller->get_max_position()));
+                            }
+                            else
+                            {
+                                break;
+                            }
                         }
-                        if (is_cancelled.load())
+                        direction = 'B';
+                    }
+                    else if (direction == 'B')
+                    {
+                        while (true)
                         {
-                            break;
+                            if (is_cancelled.load())
+                            {
+                                break;
+                            }
+                            if (is_visited.find({cur_x, cur_y}) == is_visited.end()) {
+                                capture_and_save(x, y);
+                                is_visited.insert({cur_x, cur_y});
+                            }
+                            if (cur_x - xs_size / 2 > x0_size)
+                            {
+                                x--;
+                                cur_x -= xs_size;
+                                (*x_controller).set_velocity(10);
+                                (*x_controller).move(max(cur_x, x_controller->get_min_position()));
+                            }
+                            else
+                            {
+                                break;
+                            }
                         }
-                        cur_y = cur_y + (yN_size > y0_size ? 1 : -1) * (ys_size - yo_size);
-                        cur_y = min(y_controller->get_max_position(), max(y_controller->get_min_position(), cur_y));
-                        if (cur_y + (ys_size - yo_size) / 2 >= min(y0_size, yN_size) && cur_y - (ys_size - yo_size) / 2 <= max(y0_size, yN_size))
-                        {
-                            (*y_controller).set_velocity(10);
-                            (*y_controller).move(max(y_controller->get_min_position(), min(y_controller->get_max_position(), cur_y)));
-                        }
+                        direction = 'F';
+                    }
+                    if (is_cancelled.load())
+                    {
+                        break;
+                    }
+                    if (cur_y + ys_size / 2 < yN_size)
+                    {
+                        y++;
+                        cur_y = cur_y + ys_size;
+                        (*y_controller).set_velocity(10);
+                        (*y_controller).move(max(y_controller->get_min_position(), min(y_controller->get_max_position(), cur_y)));
+                    }
+                    else
+                    {
+                        break;
                     }
                 }
                 scanning_clicked = false;
@@ -170,22 +174,13 @@ PI::PI(QWidget *parent)
             ui->x0Label->setStyleSheet("color: red");
             std::string info = "position should be valid double from " + std::to_string(x_controller->get_min_position()) + " to " + std::to_string(x_controller->get_max_position());
             ui->x0Label->setText(QString::fromStdString(info));
-
-            button_mask &= ~1;
-            ui->moveToStartPositionButton->setEnabled(false);
-            ui->startScanningButton->setEnabled(false);
+            add_disabled(X0_MASK);
         }
         else
         {
             ui->x0LineEdit->setStyleSheet("color: green");
             ui->x0Label->setText("");
-
-            button_mask |= 1;
-            if (button_mask == 255)
-            {
-                ui->moveToStartPositionButton->setEnabled(true);
-                ui->startScanningButton->setEnabled(true);
-            }
+            add_enabled(X0_MASK);
         }
     });
 
@@ -200,22 +195,13 @@ PI::PI(QWidget *parent)
             ui->y0Label->setStyleSheet("color: red");
             std::string info = "position should be valid double from " + std::to_string(y_controller->get_min_position()) + " to " + std::to_string(y_controller->get_max_position());
             ui->y0Label->setText(QString::fromStdString(info));
-
-            button_mask &= ~2;
-            ui->moveToStartPositionButton->setEnabled(false);
-            ui->startScanningButton->setEnabled(false);
+            add_disabled(Y0_MASK);
         }
         else
         {
             ui->y0LineEdit->setStyleSheet("color: green");
             ui->y0Label->setText("");
-
-            button_mask |= 2;
-            if (button_mask == 255)
-            {
-                ui->moveToStartPositionButton->setEnabled(true);
-                ui->startScanningButton->setEnabled(true);
-            }
+            add_enabled(Y0_MASK);
         }
     });
 
@@ -230,22 +216,13 @@ PI::PI(QWidget *parent)
             ui->xnLabel->setStyleSheet("color: red");
             std::string info = "position should be valid double from " + std::to_string(x_controller->get_min_position()) + " to " + std::to_string(x_controller->get_max_position());
             ui->xnLabel->setText(QString::fromStdString(info));
-
-            button_mask &= ~4;
-            ui->moveToStartPositionButton->setEnabled(false);
-            ui->startScanningButton->setEnabled(false);
+            add_disabled(XN_MASK);
         }
         else
         {
             ui->xnLineEdit->setStyleSheet("color: green");
             ui->xnLabel->setText("");
-
-            button_mask |= 4;
-            if (button_mask == 255)
-            {
-                ui->moveToStartPositionButton->setEnabled(true);
-                ui->startScanningButton->setEnabled(true);
-            }
+            add_enabled(XN_MASK);
         }
     });
 
@@ -260,22 +237,13 @@ PI::PI(QWidget *parent)
             ui->ynLabel->setStyleSheet("color: red");
             std::string info = "position should be valid double from " + std::to_string(y_controller->get_min_position()) + " to " + std::to_string(y_controller->get_max_position());
             ui->ynLabel->setText(QString::fromStdString(info));
-
-            button_mask &= ~8;
-            ui->moveToStartPositionButton->setEnabled(false);
-            ui->startScanningButton->setEnabled(false);
+            add_disabled(YN_MASK);
         }
         else
         {
             ui->ynLineEdit->setStyleSheet("color: green");
             ui->ynLabel->setText("");
-
-            button_mask |= 8;
-            if (button_mask == 255)
-            {
-                ui->moveToStartPositionButton->setEnabled(true);
-                ui->startScanningButton->setEnabled(true);
-            }
+            add_enabled(YN_MASK);
         }
     });
 
@@ -290,21 +258,13 @@ PI::PI(QWidget *parent)
             ui->xsLabel->setStyleSheet("color: red");
             std::string info = "size should be valid positive double not more " + std::to_string(x_controller->get_max_position() - x_controller->get_min_position());
             ui->xsLabel->setText(QString::fromStdString(info));
-
-            button_mask &= ~16;
-            ui->moveToStartPositionButton->setEnabled(false);
-            ui->startScanningButton->setEnabled(false);
+            add_disabled(XS_MASK);
         }
         else
         {
             ui->xsLineEdit->setStyleSheet("color: green");
             ui->xsLabel->setText("");
-            button_mask |= 16;
-            if (button_mask == 255)
-            {
-                ui->moveToStartPositionButton->setEnabled(true);
-                ui->startScanningButton->setEnabled(true);
-            }
+            add_enabled(XS_MASK);
         }
     });
 
@@ -319,82 +279,145 @@ PI::PI(QWidget *parent)
             ui->ysLabel->setStyleSheet("color: red");
             std::string info = "size should be valid positive double not more " + std::to_string(y_controller->get_max_position() - y_controller->get_min_position());
             ui->ysLabel->setText(QString::fromStdString(info));
-
-            button_mask &= ~32;
-            ui->moveToStartPositionButton->setEnabled(false);
-            ui->startScanningButton->setEnabled(false);
+            add_disabled(YS_MASK);
         }
         else
         {
             ui->ysLineEdit->setStyleSheet("color: green");
             ui->ysLabel->setText("");
-            button_mask |= 32;
-            if (button_mask == 255)
-            {
-                ui->moveToStartPositionButton->setEnabled(true);
-                ui->startScanningButton->setEnabled(true);
-            }
+            add_enabled(YS_MASK);
         }
     });
 
-    connect(ui->xoLineEdit, &QLineEdit::textEdited, this, [this]
+    connect(ui->z0LineEdit, &QLineEdit::textEdited, this, [this]
     {
         bool is_double;
-        QString xo_size_str = ui->xoLineEdit->text();
-        double xo_size = xo_size_str.toDouble(&is_double);
-        if (!is_double || xo_size < 0 || xo_size > x_controller->get_max_position() - x_controller->get_min_position())
+        QString z0_size_str = ui->z0LineEdit->text();
+        double z0_size = z0_size_str.toDouble(&is_double);
+        if (!is_double || z0_size < z_controller->get_min_position() || z0_size > z_controller->get_max_position())
         {
-            ui->xoLineEdit->setStyleSheet("color: red");
-            ui->xoLabel->setStyleSheet("color: red");
-            std::string info = "size should be valid positive double not more " + std::to_string(x_controller->get_max_position() - x_controller->get_min_position());
-            ui->xoLabel->setText(QString::fromStdString(info));
-
-            button_mask &= ~64;
-            ui->moveToStartPositionButton->setEnabled(false);
-            ui->startScanningButton->setEnabled(false);
+            ui->z0LineEdit->setStyleSheet("color: red");
+            ui->z0Label->setStyleSheet("color: red");
+            std::string info = "position should be valid double from " + std::to_string(z_controller->get_min_position()) + " to " + std::to_string(z_controller->get_max_position());
+            ui->z0Label->setText(QString::fromStdString(info));
+            add_disabled(Z0_MASK);
         }
         else
         {
-            ui->xoLineEdit->setStyleSheet("color: green");
-            ui->xoLabel->setText("");
-
-            button_mask |= 64;
-            if (button_mask == 255)
-            {
-                ui->moveToStartPositionButton->setEnabled(true);
-                ui->startScanningButton->setEnabled(true);
-            }
+            ui->z0LineEdit->setStyleSheet("color: green");
+            ui->z0Label->setText("");
+            add_enabled(Z0_MASK);
         }
     });
 
-    connect(ui->yoLineEdit, &QLineEdit::textEdited, this, [this]
+    connect(ui->znLineEdit, &QLineEdit::textEdited, this, [this]
     {
         bool is_double;
-        QString yo_size_str = ui->yoLineEdit->text();
-        double yo_size = yo_size_str.toDouble(&is_double);
-        if (!is_double || yo_size < 0 || yo_size > y_controller->get_max_position() - y_controller->get_min_position())
+        QString zn_size_str = ui->znLineEdit->text();
+        double zn_size = zn_size_str.toDouble(&is_double);
+        if (!is_double || zn_size < z_controller->get_min_position() || zn_size > z_controller->get_max_position())
         {
-            ui->yoLineEdit->setStyleSheet("color: red");
-            ui->yoLabel->setStyleSheet("color: red");
-            std::string info = "size should be valid positive double not more " + std::to_string(y_controller->get_max_position() - y_controller->get_min_position());
-            ui->yoLabel->setText(QString::fromStdString(info));
-
-            button_mask &= ~32;
-            ui->moveToStartPositionButton->setEnabled(false);
-            ui->startScanningButton->setEnabled(false);
+            ui->znLineEdit->setStyleSheet("color: red");
+            ui->znLabel->setStyleSheet("color: red");
+            std::string info = "position should be valid double from " + std::to_string(z_controller->get_min_position()) + " to " + std::to_string(z_controller->get_max_position());
+            ui->znLabel->setText(QString::fromStdString(info));
+            add_disabled(ZN_MASK);
         }
         else
         {
-            ui->yoLineEdit->setStyleSheet("color: green");
-            ui->yoLabel->setText("");
-
-            button_mask |= 128;
-            if (button_mask == 255)
-            {
-                ui->moveToStartPositionButton->setEnabled(true);
-                ui->startScanningButton->setEnabled(true);
-            }
+            ui->znLineEdit->setStyleSheet("color: green");
+            ui->znLabel->setText("");
+            add_enabled(ZN_MASK);
         }
+    });
+
+    connect(ui->zsLineEdit, &QLineEdit::textEdited, this, [this]
+    {
+        bool is_double;
+        QString zs_size_str = ui->zsLineEdit->text();
+        double zs_size = zs_size_str.toDouble(&is_double);
+        if (!is_double || zs_size < 0 || zs_size > z_controller->get_max_position() - z_controller->get_min_position())
+        {
+            ui->zsLineEdit->setStyleSheet("color: red");
+            ui->zsLabel->setStyleSheet("color: red");
+            std::string info = "size should be valid positive double not more " + std::to_string(z_controller->get_max_position() - z_controller->get_min_position());
+            ui->zsLabel->setText(QString::fromStdString(info));
+            add_disabled(ZS_MASK);
+        }
+        else
+        {
+            ui->zsLineEdit->setStyleSheet("color: green");
+            ui->zsLabel->setText("");
+            add_enabled(ZS_MASK);
+        }
+    });
+
+    connect(ui->setCurrentPosition0Button, &QPushButton::clicked, this, [this]
+    {
+        ui->x0LineEdit->setText(ui->xCur->text());
+        ui->y0LineEdit->setText(ui->yCur->text());
+        ui->x0LineEdit->setStyleSheet("color: green");
+        ui->x0Label->setText("");
+        add_enabled(X0_MASK);
+        ui->y0LineEdit->setStyleSheet("color: green");
+        ui->y0Label->setText("");
+        add_enabled(Y0_MASK);
+
+    });
+
+    connect(ui->setCurrentPositionNButton, &QPushButton::clicked, this, [this]
+    {
+        ui->xnLineEdit->setText(ui->xCur->text());
+        ui->ynLineEdit->setText(ui->yCur->text());
+        ui->xnLineEdit->setStyleSheet("color: green");
+        ui->xnLabel->setText("");
+        add_enabled(XN_MASK);
+        ui->ynLineEdit->setStyleSheet("color: green");
+        ui->ynLabel->setText("");
+        add_enabled(YN_MASK);
+    });
+
+
+    connect(ui->xMoveLeftButton, &QPushButton::clicked, this, [this]
+    {
+        double xs = ui->xsLineEdit->text().toDouble();
+        x_controller->set_velocity(0.5);
+        x_controller->move(max(x_controller->get_current_position() - xs, x_controller->get_min_position()));
+    });
+
+    connect(ui->xMoveRightButton, &QPushButton::clicked, this, [this]
+    {
+        double xs = ui->xsLineEdit->text().toDouble();
+        x_controller->set_velocity(0.5);
+        x_controller->move(min(x_controller->get_current_position() + xs, x_controller->get_max_position()));
+    });
+
+    connect(ui->yMoveLeftButton, &QPushButton::clicked, this, [this]
+    {
+        double ys = ui->ysLineEdit->text().toDouble();
+        y_controller->set_velocity(0.5);
+        y_controller->move(max(y_controller->get_current_position() - ys, y_controller->get_min_position()));
+    });
+
+    connect(ui->yMoveRightButton, &QPushButton::clicked, this, [this]
+    {
+        double ys = ui->ysLineEdit->text().toDouble();
+        y_controller->set_velocity(0.5);
+        y_controller->move(min(y_controller->get_current_position() + ys, y_controller->get_max_position()));
+    });
+
+    connect(ui->zMoveDownButton, &QPushButton::clicked, this, [this]
+    {
+        double zs = ui->zsLineEdit->text().toDouble();
+        z_controller->set_velocity(0.5);
+        z_controller->move(max(z_controller->get_current_position() - zs, z_controller->get_min_position()));
+    });
+
+    connect(ui->zMoveUpButton, &QPushButton::clicked, this, [this]
+    {
+        double zs = ui->zsLineEdit->text().toDouble();
+        z_controller->set_velocity(0.5);
+        z_controller->move(min(z_controller->get_current_position() + zs, z_controller->get_max_position()));
     });
 
     connect(timer, &QTimer::timeout, this, [this]
@@ -407,6 +430,7 @@ PI::PI(QWidget *parent)
                 logs = "<span style=\"color:orange\">" + logs + "</span>";
                 ui->logs->append(logs);
             }
+            ui->xCur->setText(QString::fromStdString(std::to_string(x_controller->get_current_position())));
         }
         if (y_controller != nullptr)
         {
@@ -416,6 +440,7 @@ PI::PI(QWidget *parent)
                 logs = "<span style=\"color:green\">" + logs + "</span>";
                 ui->logs->append(logs);
             }
+            ui->yCur->setText(QString::fromStdString(std::to_string(y_controller->get_current_position())));
         }
         if (z_controller != nullptr)
         {
@@ -425,6 +450,7 @@ PI::PI(QWidget *parent)
                 logs = "<span style=\"color:blue\">" + logs + "</span>";
                 ui->logs->append(logs);
             }
+            ui->zCur->setText(QString::fromStdString(std::to_string(z_controller->get_current_position())));
         }
         if (camera != nullptr)
         {
@@ -478,8 +504,11 @@ PI::PI(QWidget *parent)
             ui->ynLineEdit->setEnabled(true);
             ui->xsLineEdit->setEnabled(true);
             ui->ysLineEdit->setEnabled(true);
-            ui->xoLineEdit->setEnabled(true);
-            ui->yoLineEdit->setEnabled(true);
+            ui->z0LineEdit->setEnabled(true);
+            ui->znLineEdit->setEnabled(true);
+            ui->zsLineEdit->setEnabled(true);
+            ui->setCurrentPosition0Button->setEnabled(true);
+            ui->setCurrentPositionNButton->setEnabled(true);
 
             ui->findAxesButton->setEnabled(false);
         }
@@ -496,8 +525,8 @@ PI::PI(QWidget *parent)
             camera = new uEyeCamera();
             FindCamera *findCamera = new FindCamera(nullptr, camera);
             findCamera->show();
-
             ui->findCameraButton->setEnabled(false);
+            add_enabled(CM_MASK);
         }
         catch (std::exception &)
         {
@@ -530,6 +559,7 @@ PI::PI(QWidget *parent)
     {
         QString dir = QFileDialog::getExistingDirectory(this, tr("Open directory"), "C://", QFileDialog::ShowDirsOnly);
         ui->pathLine->setText(dir);
+        add_enabled(BR_MASK);
     });
 }
 
@@ -538,9 +568,63 @@ PI::~PI()
     delete ui;
 }
 
-void PI::capture_and_save(double x_pos, double y_pos)
+void PI::capture_and_save(size_t x_pos, size_t y_pos)
 {
     std::string dir_to_save = ui->pathLine->text().toStdString() + "/" + std::to_string(x_pos) + "_" + std::to_string(y_pos);
     QDir().mkdir(QString::fromStdString(dir_to_save));
-    camera->capture(dir_to_save, z_controller);
+    camera->capture(dir_to_save, z_controller, ui->z0LineEdit->text().toDouble(), ui->znLineEdit->text().toDouble(), ui->zsLineEdit->text().toDouble());
+}
+
+void PI::add_enabled(int mask)
+{
+    button_mask |= mask;
+    if ((button_mask & (X0_MASK | Y0_MASK)) == (X0_MASK | Y0_MASK))
+    {
+        ui->moveToStartPositionButton->setEnabled(true);
+    }
+    if ((button_mask & XS_MASK) == XS_MASK)
+    {
+        ui->xMoveLeftButton->setEnabled(true);
+        ui->xMoveRightButton->setEnabled(true);
+    }
+    if ((button_mask & YS_MASK) == YS_MASK)
+    {
+        ui->yMoveLeftButton->setEnabled(true);
+        ui->yMoveRightButton->setEnabled(true);
+    }
+    if ((button_mask & ZS_MASK) == ZS_MASK)
+    {
+        ui->zMoveUpButton->setEnabled(true);
+        ui->zMoveDownButton->setEnabled(true);
+    }
+    if (button_mask == (X0_MASK | XN_MASK | Y0_MASK | YN_MASK | Z0_MASK | ZN_MASK | XS_MASK | YS_MASK | ZS_MASK | BR_MASK | CM_MASK))
+    {
+        ui->startScanningButton->setEnabled(true);
+    }
+}
+
+
+void PI::add_disabled(int mask)
+{
+    button_mask &= ~mask;
+    ui->startScanningButton->setEnabled(false);
+    if ((button_mask & (X0_MASK | Y0_MASK)) != (X0_MASK | Y0_MASK))
+    {
+        ui->moveToStartPositionButton->setEnabled(false);
+    }
+    if ((button_mask & XS_MASK) != XS_MASK)
+    {
+        ui->xMoveLeftButton->setEnabled(false);
+        ui->xMoveRightButton->setEnabled(false);
+    }
+    if ((button_mask & YS_MASK) != YS_MASK)
+    {
+        ui->yMoveLeftButton->setEnabled(false);
+        ui->yMoveRightButton->setEnabled(false);
+    }
+    if ((button_mask & ZS_MASK) != ZS_MASK)
+    {
+        ui->zMoveUpButton->setEnabled(false);
+        ui->zMoveDownButton->setEnabled(false);
+    }
 }

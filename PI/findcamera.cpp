@@ -2,6 +2,8 @@
 #include "ui_findcamera.h"
 
 #include <QFileDialog>
+#include <QPixmap>
+#include <QBitmap>
 
 FindCamera::FindCamera(QWidget *parent, uEyeCamera *camera) :
     QDialog(parent),
