@@ -56,8 +56,8 @@ PI::PI(QWidget *parent)
                 double xs_size = ui->xsLineEdit->text().toDouble();
                 double ys_size = ui->ysLineEdit->text().toDouble();
                 double z0_size = ui->z0LineEdit->text().toDouble();
-                double cur_x = x0_size + (x0_size < xN_size ? 1 : -1) * xs_size / 2;
-                double cur_y = y0_size + (y0_size < yN_size ? 1 : -1) * ys_size / 2;
+                double cur_x = x0_size;
+                double cur_y = y0_size;
                 std::thread th1([this, cur_x]
                 {
                     (*x_controller).set_velocity(5);
@@ -97,7 +97,7 @@ PI::PI(QWidget *parent)
                                 capture_and_save(x, y);
                                 is_visited.insert({cur_x, cur_y});
                             }
-                            if (cur_x + xs_size / 2 < xN_size)
+                            if (cur_x < xN_size)
                             {
                                 x++;
                                 cur_x += xs_size;
@@ -123,7 +123,7 @@ PI::PI(QWidget *parent)
                                 capture_and_save(x, y);
                                 is_visited.insert({cur_x, cur_y});
                             }
-                            if (cur_x - xs_size / 2 > x0_size)
+                            if (cur_x > x0_size)
                             {
                                 x--;
                                 cur_x -= xs_size;
@@ -141,7 +141,7 @@ PI::PI(QWidget *parent)
                     {
                         break;
                     }
-                    if (cur_y + ys_size / 2 < yN_size)
+                    if (cur_y < yN_size)
                     {
                         y++;
                         cur_y = cur_y + ys_size;
@@ -238,9 +238,27 @@ PI::PI(QWidget *parent)
                     return z_moving_down_clicked;
                 });
                 double zs = ui->zsLineEdit->text().toDouble();
-                z_controller->set_velocity(0.5);
+                z_controller->set_velocity(zs);
                 z_controller->move(max(z_controller->get_current_position() - zs, z_controller->get_min_position()));
                 z_moving_down_clicked = false;
+                enable_all();
+                lg.unlock();
+            }
+        })
+    , z_moving_down_max_thread([this]
+        {
+            for(;;)
+            {
+                std::unique_lock<std::mutex> lg(m);
+                z_moving_down_max_var.wait(lg, [this]
+                {
+                    return z_moving_down_max_clicked;
+                });
+                double z0 = ui->z0LineEdit->text().toDouble();
+                double zs = ui->zsLineEdit->text().toDouble();
+                z_controller->set_velocity(zs);
+                z_controller->move(z0);
+                z_moving_down_max_clicked = false;
                 enable_all();
                 lg.unlock();
             }
@@ -255,9 +273,27 @@ PI::PI(QWidget *parent)
                     return z_moving_up_clicked;
                 });
                 double zs = ui->zsLineEdit->text().toDouble();
-                z_controller->set_velocity(0.5);
+                z_controller->set_velocity(zs);
                 z_controller->move(min(z_controller->get_current_position() + zs, z_controller->get_max_position()));
                 z_moving_up_clicked = false;
+                enable_all();
+                lg.unlock();
+            }
+        })
+    , z_moving_up_max_thread([this]
+        {
+            for(;;)
+            {
+                std::unique_lock<std::mutex> lg(m);
+                z_moving_up_max_var.wait(lg, [this]
+                {
+                    return z_moving_up_max_clicked;
+                });
+                double zn = ui->znLineEdit->text().toDouble();
+                double zs = ui->zsLineEdit->text().toDouble();
+                z_controller->set_velocity(zs);
+                z_controller->move(zn);
+                z_moving_up_max_clicked = false;
                 enable_all();
                 lg.unlock();
             }
@@ -531,11 +567,25 @@ PI::PI(QWidget *parent)
         z_moving_down_var.notify_one();
     });
 
+    connect(ui->zMoveDownMaxButton, &QPushButton::clicked, this, [this]
+    {
+        disable_all();
+        z_moving_down_max_clicked = true;
+        z_moving_down_max_var.notify_one();
+    });
+
     connect(ui->zMoveUpButton, &QPushButton::clicked, this, [this]
     {
         disable_all();
         z_moving_up_clicked = true;
         z_moving_up_var.notify_one();
+    });
+
+    connect(ui->zMoveUpMaxButton, &QPushButton::clicked, this, [this]
+    {
+        disable_all();
+        z_moving_up_max_clicked = true;
+        z_moving_up_max_var.notify_one();
     });
 
     connect(timer, &QTimer::timeout, this, [this]
@@ -730,6 +780,11 @@ void PI::add_enabled(int mask)
         ui->zMoveUpButton->setEnabled(true);
         ui->zMoveDownButton->setEnabled(true);
     }
+    if ((button_mask & (Z0_MASK | ZN_MASK | ZS_MASK)) == (Z0_MASK | ZN_MASK | ZS_MASK))
+    {
+        ui->zMoveDownMaxButton->setEnabled(true);
+        ui->zMoveUpMaxButton->setEnabled(true);
+    }
     if (button_mask == (X0_MASK | XN_MASK | Y0_MASK | YN_MASK | Z0_MASK | ZN_MASK | XS_MASK | YS_MASK | ZS_MASK | BR_MASK | CM_MASK))
     {
         ui->startScanningButton->setEnabled(true);
@@ -760,6 +815,11 @@ void PI::add_disabled(int mask)
         ui->zMoveUpButton->setEnabled(false);
         ui->zMoveDownButton->setEnabled(false);
     }
+    if ((button_mask & (Z0_MASK | ZN_MASK | ZS_MASK)) != (Z0_MASK | ZN_MASK | ZS_MASK))
+    {
+        ui->zMoveDownMaxButton->setEnabled(true);
+        ui->zMoveUpMaxButton->setEnabled(true);
+    }
 }
 
 void PI::disable_all()
@@ -769,7 +829,9 @@ void PI::disable_all()
     ui->yMoveLeftButton->setEnabled(false);
     ui->yMoveRightButton->setEnabled(false);
     ui->zMoveDownButton->setEnabled(false);
+    ui->zMoveDownMaxButton->setEnabled(false);
     ui->zMoveUpButton->setEnabled(false);
+    ui->zMoveUpMaxButton->setEnabled(false);
 }
 
 void PI::enable_all()
@@ -788,5 +850,10 @@ void PI::enable_all()
     {
         ui->zMoveDownButton->setEnabled(true);
         ui->zMoveUpButton->setEnabled(true);
+    }
+    if ((button_mask & (Z0_MASK | ZN_MASK | ZS_MASK)) == (Z0_MASK | ZN_MASK | ZS_MASK))
+    {
+        ui->zMoveDownMaxButton->setEnabled(true);
+        ui->zMoveUpMaxButton->setEnabled(true);
     }
 }

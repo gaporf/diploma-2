@@ -29,6 +29,10 @@ struct uEyeCamera
 
     void stop_capture();
 
+    INT get_width();
+
+    INT get_height();
+
 private:
     std::atomic_int current_captures;
 

@@ -439,6 +439,16 @@ std::string uEyeCamera::get_logs()
     return res;
 }
 
+INT uEyeCamera::get_width()
+{
+    return m_nSizeX;
+}
+
+INT uEyeCamera::get_height()
+{
+    return m_nSizeY;
+}
+
 void uEyeCamera::SeqBuilt()
 {
     unsigned int imax = m_nBuffersNew;

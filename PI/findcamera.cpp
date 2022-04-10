@@ -50,7 +50,7 @@ FindCamera::FindCamera(QWidget *parent, uEyeCamera *camera) :
     connect(timer, &QTimer::timeout, this, [this]
     {
         char *picture = this->camera->get_picture();
-        QImage image(reinterpret_cast<uchar *>(picture), 800, 800, 800, QImage::Format_Indexed8);
+        QImage image(reinterpret_cast<uchar *>(picture), this->camera->get_width(), this->camera->get_height(), this->camera->get_width(), QImage::Format_Indexed8);
         QPixmap pixmap = QPixmap::fromImage(image);
         ui->imageLabel->setPixmap(pixmap);
         ui->imageLabel->setMask(pixmap.mask());

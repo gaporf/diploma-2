@@ -85,9 +85,17 @@ private:
     std::condition_variable z_moving_down_var;
     bool z_moving_down_clicked = false;
 
+    std::thread z_moving_down_max_thread;
+    std::condition_variable z_moving_down_max_var;
+    bool z_moving_down_max_clicked = false;
+
     std::thread z_moving_up_thread;
     std::condition_variable z_moving_up_var;
     bool z_moving_up_clicked = false;
+
+    std::thread z_moving_up_max_thread;
+    std::condition_variable z_moving_up_max_var;
+    bool z_moving_up_max_clicked = false;
 
     std::atomic_bool is_cancelled;
 
