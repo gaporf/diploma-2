@@ -18,6 +18,7 @@ uEyeCamera::uEyeCamera() : m_hCam(static_cast<HIDS>(0)), m_nBuffersNew(850), lib
     nRet = is_ParameterSet(m_hCam, IS_PARAMETERSET_CMD_LOAD_EEPROM, NULL, NULL);
     if (nRet != IS_SUCCESS)
     {
+        std::cout << "error" << std::endl;
         throw std::runtime_error("Can't load default parameters");
     }
 
@@ -178,6 +179,7 @@ void uEyeCamera::push_log(std::string log)
 void uEyeCamera::capture(std::string path, pi_controller *z_controller, double z0, double zn, double zs)
 {
     std::cout << path << std::endl;
+    this->pictures_cnt = 0;
     INT nRet;
     start_capture();
     std::atomic_int working;
@@ -186,17 +188,20 @@ void uEyeCamera::capture(std::string path, pi_controller *z_controller, double z
     }
     z_controller->set_velocity(zs);
     std::ofstream out_file(path + "/info.txt");
-    std::thread th([z_controller, z0, zn, zs, &working, &out_file]
+    bool is_normal;
+    std::thread th([z_controller, z0, zn, zs, &working, &out_file, &is_normal]
     {
         z_controller->set_velocity(zs);
         if (std::abs(z_controller->get_current_position() - z0) < std::abs(z_controller->get_current_position() - zn))
         {
             out_file << "normal" << std::endl;
+            is_normal = true;
             z_controller->move(zn);
         }
         else
         {
             out_file << "reverse" << std::endl;
+            is_normal = false;
             z_controller->move(z0);
         }
         working.store(0);
@@ -216,7 +221,7 @@ void uEyeCamera::capture(std::string path, pi_controller *z_controller, double z
                 pictures.pop();
             }
             cv::Mat image(cv::Size(m_nSizeX, m_nSizeY), CV_8UC1, picture.first, m_nSizeX);
-            imwrite(path + "/" + fit(std::to_string(picture.second)) + ".png", image);
+            imwrite(path + "/" + fit(std::to_string(picture.second)) + ".pnm", image);
         }
         wait_picture.store(0);
         while (!pictures.empty()) {
@@ -230,7 +235,7 @@ void uEyeCamera::capture(std::string path, pi_controller *z_controller, double z
                 pictures.pop();
             }
             cv::Mat image(cv::Size(m_nSizeX, m_nSizeY), CV_8UC1, picture.first, m_nSizeX);
-            imwrite(path + "/" + fit(std::to_string(picture.second)) + ".png", image);
+            imwrite(path + "/" + fit(std::to_string(picture.second)) + ".pnm", image);
         }
     });
     std::thread th2([&working, &path, this]
@@ -246,7 +251,7 @@ void uEyeCamera::capture(std::string path, pi_controller *z_controller, double z
                 pictures.pop();
             }
             cv::Mat image(cv::Size(m_nSizeX, m_nSizeY), CV_8UC1, picture.first, m_nSizeX);
-            imwrite(path + "/" + fit(std::to_string(picture.second)) + ".png", image);
+            imwrite(path + "/" + fit(std::to_string(picture.second)) + ".pnm", image);
         }
         wait_picture.store(0);
         while (!pictures.empty()) {
@@ -260,7 +265,7 @@ void uEyeCamera::capture(std::string path, pi_controller *z_controller, double z
                 pictures.pop();
             }
             cv::Mat image(cv::Size(m_nSizeX, m_nSizeY), CV_8UC1, picture.first, m_nSizeX);
-            imwrite(path + "/" + fit(std::to_string(picture.second)) + ".png", image);
+            imwrite(path + "/" + fit(std::to_string(picture.second)) + ".pnm", image);
         }
     });
     std::thread th3([&working, &path, this]
@@ -276,7 +281,7 @@ void uEyeCamera::capture(std::string path, pi_controller *z_controller, double z
                 pictures.pop();
             }
             cv::Mat image(cv::Size(m_nSizeX, m_nSizeY), CV_8UC1, picture.first, m_nSizeX);
-            imwrite(path + "/" + fit(std::to_string(picture.second)) + ".png", image);
+            imwrite(path + "/" + fit(std::to_string(picture.second)) + ".pnm", image);
         }
         wait_picture.store(0);
         while (!pictures.empty()) {
@@ -290,7 +295,7 @@ void uEyeCamera::capture(std::string path, pi_controller *z_controller, double z
                 pictures.pop();
             }
             cv::Mat image(cv::Size(m_nSizeX, m_nSizeY), CV_8UC1, picture.first, m_nSizeX);
-            imwrite(path + "/" + fit(std::to_string(picture.second)) + ".png", image);
+            imwrite(path + "/" + fit(std::to_string(picture.second)) + ".pnm", image);
         }
     });
     std::thread th4([&working, &path, this]
@@ -306,7 +311,7 @@ void uEyeCamera::capture(std::string path, pi_controller *z_controller, double z
                 pictures.pop();
             }
             cv::Mat image(cv::Size(m_nSizeX, m_nSizeY), CV_8UC1, picture.first, m_nSizeX);
-            imwrite(path + "/" + fit(std::to_string(picture.second)) + ".png", image);
+            imwrite(path + "/" + fit(std::to_string(picture.second)) + ".pnm", image);
         }
         wait_picture.store(0);
         while (!pictures.empty()) {
@@ -320,7 +325,7 @@ void uEyeCamera::capture(std::string path, pi_controller *z_controller, double z
                 pictures.pop();
             }
             cv::Mat image(cv::Size(m_nSizeX, m_nSizeY), CV_8UC1, picture.first, m_nSizeX);
-            imwrite(path + "/" + fit(std::to_string(picture.second)) + ".png", image);
+            imwrite(path + "/" + fit(std::to_string(picture.second)) + ".pnm", image);
         }
     });
     std::thread th5([&working, &path, this]
@@ -336,7 +341,7 @@ void uEyeCamera::capture(std::string path, pi_controller *z_controller, double z
                 pictures.pop();
             }
             cv::Mat image(cv::Size(m_nSizeX, m_nSizeY), CV_8UC1, picture.first, m_nSizeX);
-            imwrite(path + "/" + fit(std::to_string(picture.second)) + ".png", image);
+            imwrite(path + "/" + fit(std::to_string(picture.second)) + ".pnm", image);
         }
         wait_picture.store(0);
         while (!pictures.empty()) {
@@ -350,7 +355,7 @@ void uEyeCamera::capture(std::string path, pi_controller *z_controller, double z
                 pictures.pop();
             }
             cv::Mat image(cv::Size(m_nSizeX, m_nSizeY), CV_8UC1, picture.first, m_nSizeX);
-            imwrite(path + "/" + fit(std::to_string(picture.second)) + ".png", image);
+            imwrite(path + "/" + fit(std::to_string(picture.second)) + ".pnm", image);
         }
     });
     th1.join();
@@ -358,8 +363,28 @@ void uEyeCamera::capture(std::string path, pi_controller *z_controller, double z
     th3.join();
     th4.join();
     th5.join();
+    out_file.close();
     stop_capture();
     th.join();
+    push_log("Applying Wienner filter");
+    std::string path_to_executable = QCoreApplication::applicationDirPath().toStdString();
+    std::string command = "\"" + path_to_executable + "/WFilter2CL.exe\" " + path + "/$05i.pnm 0 " + std::to_string(pictures_cnt - 1) + " 1 " + path + "/$05i.pgm 1.5 30";
+    std::cout << command << std::endl;
+    push_log("running command " + command);
+    system(command.c_str());
+    std::vector<cv::Mat> images;
+    push_log("Saving tiff");
+    for (size_t i = 0; i < m_nSizeX; i++) {
+        std::string num = fit(std::to_string(is_normal ? i : m_nSizeX - i - 1));
+        cv::Mat image = cv::imread(path + "/" + num + ".pgm", cv::IMREAD_GRAYSCALE);
+        cv::Mat output_image;
+        cv::resize(image, output_image, cv::Size(m_nSizeX, pictures_cnt / 20), cv::INTER_LANCZOS4);
+        images.push_back(output_image);
+    }
+    cv::imwrite(path + ".tif", images);
+    push_log("removing dir");
+    QDir dir(path.c_str());
+    dir.removeRecursively();
 }
 
 void uEyeCamera::start_capture()
@@ -593,6 +618,7 @@ void uEyeCamera::EvInitAll()
                 {
                     std::unique_lock<std::mutex> lg(m);
                     pictures.push({pcMemLast, cnt++});
+                    this->pictures_cnt = max(this->pictures_cnt, cnt);
                 }
                 else
                 {

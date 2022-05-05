@@ -5,6 +5,8 @@
 #include <thread>
 
 #include <QLibrary>
+#include <QDir>
+#include <QCoreApplication>
 
 #include "opencv2/imgcodecs.hpp"
 #include "opencv2/imgproc.hpp"
@@ -35,6 +37,7 @@ struct uEyeCamera
 
 private:
     std::atomic_int current_captures;
+    size_t pictures_cnt;
 
     QLibrary lib;
 

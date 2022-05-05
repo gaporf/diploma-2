@@ -10,6 +10,8 @@ struct pi_controller
 {
     pi_controller(const std::string &axis, const std::string &stage);
 
+    ~pi_controller();
+
     std::string get_logs();
 
     int connect_vid_usb(int initial_port);
@@ -23,6 +25,8 @@ struct pi_controller
     void reference();
 
     void get_limits();
+
+    int get_port();
 
     double get_min_position();
 

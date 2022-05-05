@@ -817,8 +817,8 @@ void PI::add_disabled(int mask)
     }
     if ((button_mask & (Z0_MASK | ZN_MASK | ZS_MASK)) != (Z0_MASK | ZN_MASK | ZS_MASK))
     {
-        ui->zMoveDownMaxButton->setEnabled(true);
-        ui->zMoveUpMaxButton->setEnabled(true);
+        ui->zMoveDownMaxButton->setEnabled(false);
+        ui->zMoveUpMaxButton->setEnabled(false);
     }
 }
 

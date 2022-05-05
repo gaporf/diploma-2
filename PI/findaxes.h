@@ -8,11 +8,27 @@
 #include <mutex>
 
 #include "pi_controller.h"
-
+#include "ui_findaxes.h"
 
 namespace Ui {
 class FindAxes;
 }
+
+enum buttons
+{
+    X0,
+    XN,
+    Y0,
+    YN,
+    Z0,
+    ZN,
+    XS,
+    YS,
+    ZS,
+    XY,
+    XZ,
+    YZ
+};
 
 class FindAxes : public QDialog
 {
@@ -20,6 +36,7 @@ class FindAxes : public QDialog
 
 public:
     FindAxes(QWidget *parent = nullptr, pi_controller **x = nullptr, pi_controller **y = nullptr, pi_controller **z = nullptr);
+
     ~FindAxes();
 
 private:
@@ -77,6 +94,10 @@ private:
     std::thread yz_thread;
     std::condition_variable yz_var;
     bool yz_clicked = false;
+
+    std::map<std::string, std::thread> threads;
+    std::map<std::string, std::condition_variable> vars;
+    std::map<std::string, bool> clicks;
 
     void disable_all();
     void enable_all();

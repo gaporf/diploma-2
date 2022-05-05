@@ -1,6 +1,8 @@
 #include "findaxes.h"
 #include "ui_findaxes.h"
 
+#include <iostream>
+
 FindAxes::FindAxes(QWidget *parent, pi_controller **x, pi_controller **y, pi_controller **z) :
     QDialog(parent),
     ui(new Ui::FindAxes),
@@ -190,9 +192,17 @@ FindAxes::FindAxes(QWidget *parent, pi_controller **x, pi_controller **y, pi_con
                 });
                 std::string x_name = (*x_controller)->get_axis_name();
                 std::string z_name = (*z_controller)->get_axis_name();
-                std::swap(*x_controller, *z_controller);
-                (*x_controller)->set_axis_name(x_name);
-                (*z_controller)->set_axis_name(z_name);
+                int x_port = (*z_controller)->get_port();
+                int z_port = (*x_controller)->get_port();
+                delete *x_controller;
+                delete *z_controller;
+                *x_controller = new pi_controller("x", "M-511.DD");
+                (*x_controller)->connect_vid_usb(x_port);
+                *z_controller = new pi_controller("z", "M-501.1DG");
+                (*z_controller)->connect_vid_usb(z_port);
+                /*(*x_controller)->set_axis_name(x_name);
+                (*z_controller)->set_axis_name(z_name);*/
+
                 xz_clicked = false;
                 enable_all();
                 lg.unlock();

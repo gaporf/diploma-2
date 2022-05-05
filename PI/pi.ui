@@ -248,7 +248,7 @@
          <bool>false</bool>
         </property>
         <property name="text">
-         <string>^^</string>
+         <string>↑↑</string>
         </property>
        </widget>
       </item>
@@ -258,7 +258,7 @@
          <bool>false</bool>
         </property>
         <property name="text">
-         <string>^</string>
+         <string>↑</string>
         </property>
        </widget>
       </item>
@@ -282,7 +282,7 @@
          <bool>false</bool>
         </property>
         <property name="text">
-         <string>V</string>
+         <string>↓</string>
         </property>
        </widget>
       </item>
@@ -292,7 +292,7 @@
          <bool>false</bool>
         </property>
         <property name="text">
-         <string>VV</string>
+         <string>↓↓</string>
         </property>
        </widget>
       </item>
@@ -349,7 +349,7 @@
          <bool>false</bool>
         </property>
         <property name="text">
-         <string>&lt;</string>
+         <string>←</string>
         </property>
        </widget>
       </item>
@@ -373,7 +373,7 @@
          <bool>false</bool>
         </property>
         <property name="text">
-         <string>&gt;</string>
+         <string>→</string>
         </property>
        </widget>
       </item>
@@ -383,7 +383,7 @@
          <bool>false</bool>
         </property>
         <property name="text">
-         <string>&lt;</string>
+         <string>←</string>
         </property>
        </widget>
       </item>
@@ -407,7 +407,7 @@
          <bool>false</bool>
         </property>
         <property name="text">
-         <string>&gt;</string>
+         <string>→</string>
         </property>
        </widget>
       </item>

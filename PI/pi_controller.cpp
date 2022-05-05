@@ -4,6 +4,23 @@
 
 pi_controller::pi_controller(const std::string &axis, const std::string &stage) : axis(axis), stage(stage), lib("PI_GCS2_DLL_x64.dll") {}
 
+pi_controller::~pi_controller()
+{
+    push_log("Closing the connection");
+    typedef long (*FuncPtr)(long id);
+    FuncPtr func = (FuncPtr) lib.resolve("PI_CloseConnection");
+    if (func == nullptr)
+    {
+        push_log("Couldn't find PI_CloseConnection function in dll");
+    }
+    int status = func(this->id);
+    if (status != 0)
+    {
+        push_log("Couldn't close");
+    }
+    push_log("The connection is closed");
+}
+
 std::string pi_controller::get_logs()
 {
     std::string res;
@@ -378,6 +395,11 @@ void pi_controller::set_velocity(double velocity)
             throw std::runtime_error("PI_VEL failed");
         }
     }
+}
+
+int pi_controller::get_port()
+{
+    return port;
 }
 
 double pi_controller::get_min_position()
