@@ -37,7 +37,7 @@ struct uEyeCamera
 
 private:
     std::atomic_int current_captures;
-    size_t pictures_cnt;
+    size_t cnt;
 
     QLibrary lib;
 
